@@ -2,54 +2,61 @@ import streamlit as st
 import pandas as pd
 
 # ---------------------------------------------------------
-# 1. จำลองฐานข้อมูล (ดึงมาจาก Google Sheet ที่เราออกแบบไว้)
+# 1. เชื่อมต่อฐานข้อมูลจาก Google Sheet (ข้อมูลจริงของพี่มหา)
 # ---------------------------------------------------------
-data = {
-    'Date': ['2026-04-20', '2026-04-21', '2026-04-20', '2026-04-21'],
-    'Student Name': ['Aphiphongphiphut', 'Aphiphongphiphut', 'Pharin', 'Pharin'],
-    'Course Level': ['SAT Camp', 'SAT Camp', 'Builder', 'Builder'],
-    'Target Score': [1400, 1400, 1200, 1200],
-    'Highest Score': [1220, 1220, 1070, 1070],
-    'Total Score': [1220, 1210, 900, 1070],
-    'R&W Score': [580, 610, 480, 580],
-    'Math Score': [640, 600, 420, 490]
-}
-df = pd.DataFrame(data)
+# ข้อมูลจากไฟล์ V2 ที่น้องใจดีสร้างให้ค่ะ [cite: 16]
+sheet_id = "1qTeQHY74MxOPx_gxXwrkB4pX8bRrqaG4WTox3vHIPVw" 
+sheet_name = "SAT%20Information%20Dashboard%20V2"
+url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+
+# ดึงข้อมูลมาเป็น DataFrame
+try:
+    df = pd.read_csv(url)
+    # แปลงคอลัมน์วันที่ให้เป็นรูปแบบที่ใช้งานง่าย
+    df['Date'] = pd.to_datetime(df['Date']).dt.date
+except Exception as e:
+    st.error(f"ไม่สามารถเชื่อมต่อข้อมูลได้: {e}")
+    st.stop()
 
 # ตั้งค่าหน้าจอ Web App
 st.set_page_config(page_title="SAT Information Dashboard", layout="wide")
 
 # ---------------------------------------------------------
-# 2. หน้า Log in (จำลองการเลือกสิทธิ์การเข้าใช้งาน)
+# 2. ระบบ Log-in (จำลองการเลือกสิทธิ์)
 # ---------------------------------------------------------
-st.sidebar.title("Log in")
+st.sidebar.title("🔐 Log in")
 role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Teacher", "Admin"])
 
 # ---------------------------------------------------------
 # 3. หน้า Students / Parents
 # ---------------------------------------------------------
 if role == "Student":
-    # สมมติว่าระบบรู้ว่านักเรียนที่ล็อกอินคือใคร
-    student_name = st.sidebar.selectbox("จำลองอีเมลที่ล็อกอิน:", df['Student Name'].unique())
-    student_data = df[df['Student Name'] == student_name]
+    # ให้นักเรียนเลือกชื่อตัวเอง (จำลองระบบล็อกอินด้วยอีเมล)
+    student_list = df['Student Name'].unique()
+    student_name = st.sidebar.selectbox("จำลองชื่อนักเรียนที่ล็อกอิน:", student_list)
+    
+    # กรองข้อมูลเฉพาะของนักเรียนคนนั้น
+    student_data = df[df['Student Name'] == student_name].sort_values('Date')
     
     st.title(f"📊 Dashboard ของน้อง {student_name}")
-    st.write(f"**คอร์สที่กำลังเรียน:** {student_data['Course Level'].iloc[0]}")
+    st.write(f"**คอร์สเรียน:** {student_data['Course Level'].iloc[0]}")
     
-    # แสดงเป้าหมายและคะแนนสูงสุด
+    # แสดงเป้าหมายและคะแนนสูงสุด (ดึงจาก Sheet จริง) [cite: 16]
     col1, col2 = st.columns(2)
-    col1.metric("🎯 เป้าหมายคะแนน (Target)", f"{student_data['Target Score'].iloc[0]}")
-    col2.metric("🏆 คะแนนที่ดีที่สุด (Highest)", f"{student_data['Highest Score'].iloc[0]}")
+    col1.metric("🎯 เป้าหมายคะแนน (Target)", f"{int(student_data['Target Score'].iloc[0])}")
+    col2.metric("🏆 คะแนนที่ดีที่สุด (Highest)", f"{int(student_data['Highest Score'].iloc[0])}")
     
     st.divider()
     
-    # กราฟแท่งแสดงคะแนนรวมแต่ละครั้ง
-    st.subheader("📈 พัฒนาการคะแนน (Total Score)")
+    # กราฟแท่งแสดงพัฒนาการคะแนนรวม
+    st.subheader("📈 พัฒนาการคะแนนรวม (Total SAT Score)")
     st.bar_chart(student_data.set_index('Date')['Total Score'])
     
-    # แสดงรายละเอียด Performance in Details (เมื่ออยากดูเจาะลึก)
-    with st.expander("🔍 ดูรายละเอียด Performance in Details แยกรายวิชา"):
-        st.dataframe(student_data[['Date', 'Total Score', 'R&W Score', 'Math Score']], use_container_width=True)
+    # เจาะลึกรายวิชา
+    with st.expander("🔍 ดูรายละเอียด Performance in Details (Math vs R&W)"):
+        chart_data = student_data[['Date', 'Math Score', 'R&W Score']].set_index('Date')
+        st.line_chart(chart_data)
+        st.dataframe(student_data[['Date', 'Total Score', 'Math Score', 'R&W Score']], use_container_width=True)
 
 # ---------------------------------------------------------
 # 4. หน้า Teachers
@@ -57,37 +64,40 @@ if role == "Student":
 elif role == "Teacher":
     st.title("👩‍🏫 Teacher Dashboard")
     
-    # เลือกคอร์สและนักเรียน
-    course = st.selectbox("เลือกคอร์สที่สอน (Courses):", ["Builder", "Mastery", "SAT Camp", "Final Boost", "SAT Blue Print Workshop"])
+    # เลือกดูตามคอร์สเรียน
+    course_list = df['Course Level'].unique()
+    course = st.selectbox("เลือกคอร์สที่ต้องการติดตาม:", course_list)
     
-    # กรองเฉพาะนักเรียนในคอร์สนั้น
+    # กรองข้อมูลนักเรียนในคอร์สนั้น
     course_data = df[df['Course Level'] == course]
     
     if not course_data.empty:
-        student_to_view = st.selectbox("เลือกนักเรียนเพื่อดูข้อมูล:", course_data['Student Name'].unique())
-        st.write("ข้อมูลคะแนนล่าสุด:")
+        student_to_view = st.selectbox("เลือกรายชื่อนักเรียน:", course_data['Student Name'].unique())
+        st.write(f"**ตารางสรุปผลสอบของน้อง {student_to_view}:**")
         st.dataframe(course_data[course_data['Student Name'] == student_to_view], use_container_width=True)
         
-        # ช่องพิมพ์ Comment สั่งการบ้านหรือข้อแนะนำ
-        st.subheader("📝 Teacher's Comments & Objectives")
-        comment = st.text_area(f"พิมพ์ข้อเสนอแนะสำหรับ {student_to_view}:")
-        if st.button("ส่ง Comment"):
-            st.success("บันทึก Comment ลงฐานข้อมูลเรียบร้อยแล้ว!")
+        # ช่องสำหรับพิมพ์คอมเมนต์
+        st.subheader("📝 ให้คำแนะนำเพิ่มเติม (Objectives)")
+        st.text_area(f"พิมพ์ข้อความถึง {student_to_view}:")
+        st.button("ส่งข้อมูล")
     else:
-        st.info("ยังไม่มีข้อมูลนักเรียนในคอร์สนี้")
+        st.info("ยังไม่มีข้อมูลนักเรียนในระดับนี้")
 
 # ---------------------------------------------------------
 # 5. หน้า Admin
 # ---------------------------------------------------------
 elif role == "Admin":
-    st.title("⚙️ Admin Panel")
-    st.subheader("ระบบจัดการผู้ใช้งาน (User Management)")
+    st.title("⚙️ Admin Control Panel")
+    st.subheader("จัดการฐานข้อมูลผู้ใช้งานและผลสอบ")
     
-    # ตารางจำลองข้อมูล User
-    st.dataframe(df[['Student Name', 'Course Level', 'Target Score']].drop_duplicates(), use_container_width=True)
+    # แสดงข้อมูลทั้งหมดในระบบ
+    st.write("ข้อมูลภาพรวมทั้งหมดใน Google Sheet:")
+    st.dataframe(df, use_container_width=True)
     
-    # ปุ่มจัดการ
-    col1, col2, col3 = st.columns(3)
-    col1.button("➕ เพิ่มนักเรียน/ครู (Add User)")
-    col2.button("🔑 รีเซ็ตรหัสผ่าน (Reset Password)")
-    col3.button("🗑️ ลบผู้ใช้งาน (Delete User)")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.button("➕ เพิ่มข้อมูลนักเรียนใหม่")
+        st.button("🔑 จัดการรหัสผ่าน")
+    with col2:
+        st.button("💾 สำรองข้อมูล (Backup)")
+        st.button("🗑️ ลบข้อมูลที่ผิดพลาด")
