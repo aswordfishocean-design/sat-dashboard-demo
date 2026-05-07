@@ -1,92 +1,261 @@
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
+import React, { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+} from "recharts";
 
-# --- 1. การเชื่อมต่อข้อมูล ---
-sheet_id = "1qTeQHY74MxOPx_gxXwrkB4pX8bRrqaG4WTox3vHIPVw" 
-sheet_name = "SAT%20Information%20Dashboard%20V2"
-url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+// ------------------------------------------------------------
+// SAT Information Dashboard - Professional Edition (Student View)
+// ------------------------------------------------------------
 
-@st.cache_data(ttl=600) # พักข้อมูลไว้ 10 นาทีเพื่อความรวดเร็ว
-def load_data():
-    df = pd.read_csv(url)
-    df['Date'] = pd.to_datetime(df['Date']).dt.date
-    return df
+const attempts = [
+  {
+    id: "A1",
+    attemptLabel: "Attempt 1",
+    dateLabel: "Apr 20, 2026",
+    rw: 580,
+    math: 640,
+    total: 1220,
+    rwTopics: [
+      { subject: "Craft & Structure", score: 57, fullMark: 100 },
+      { subject: "Info & Ideas", score: 69, fullMark: 100 },
+      { subject: "Standard English", score: 77, fullMark: 100 },
+      { subject: "Expression of Ideas", score: 82, fullMark: 100 },
+    ],
+    mathTopics: [
+      { subject: "Algebra", score: 100, fullMark: 100 },
+      { subject: "Problem Solving", score: 86, fullMark: 100 },
+      { subject: "Advanced Math", score: 79, fullMark: 100 },
+      { subject: "Additional Topics", score: 50, fullMark: 100 },
+    ],
+    wrongQuestions: {
+      rw: [4, 12, 13, 14, 16, 19, 20, 23, 24],
+      math: [11, 12, 14, 16, 19, 20, 22],
+    },
+  },
+  // ... (Attempt 2 - 4 เหมือนเดิม)
+  {
+    id: "A5",
+    attemptLabel: "Attempt 5",
+    dateLabel: "Apr 24, 2026",
+    rw: 620,
+    math: 720,
+    total: 1340,
+    rwTopics: [
+      { subject: "Craft & Structure", score: 83, fullMark: 100 },
+      { subject: "Info & Ideas", score: 88, fullMark: 100 },
+      { subject: "Standard English", score: 71, fullMark: 100 },
+      { subject: "Expression of Ideas", score: 75, fullMark: 100 },
+    ],
+    mathTopics: [
+      { subject: "Algebra", score: 87, fullMark: 100 },
+      { subject: "Problem Solving", score: 100, fullMark: 100 },
+      { subject: "Advanced Math", score: 75, fullMark: 100 },
+      { subject: "Additional Topics", score: 67, fullMark: 100 },
+    ],
+    wrongQuestions: {
+      rw: [3, 6, 10, 13, 15, 17, 20, 21, 22, 23],
+      math: [10, 14, 16, 18, 19, 21, 22],
+    },
+  },
+];
 
-try:
-    df = load_data()
-except Exception as e:
-    st.error(f"เชื่อมต่อข้อมูลไม่ได้: {e}")
-    st.stop()
+const STUDENT = {
+  name: "Aphiphongphiphut Kaweeyarn",
+  target: 1500,
+};
 
-st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
+export default function DigitalSATReportProfessional() {
+  const latest = attempts[attempts.length - 1];
+  const [selectedId, setSelectedId] = useState(latest.id);
+  const selectedAttempt = useMemo(() => attempts.find(a => a.id === selectedId) || latest, [selectedId]);
 
-# --- 2.Sidebar ---
-st.sidebar.title("🔐 Login Portal")
-role = st.sidebar.selectbox("บทบาทผู้ใช้งาน:", ["Student", "Teacher", "Admin"])
+  const bestTotal = Math.max(...attempts.map(a => a.total));
+  const progressPercent = Math.round((bestTotal / STUDENT.target) * 100);
 
-# --- 3. หน้า Students (ปรับปรุงใหม่) ---
-if role == "Student":
-    student_list = df['Student Name'].unique()
-    student_name = st.sidebar.selectbox("เลือกชื่อนักเรียน:", student_list)
-    student_data = df[df['Student Name'] == student_name].sort_values('Date')
-    
-    st.title(f"✨ ยินดีต้อนรับน้อง {student_name}")
-    
-    # ส่วนสรุปด้านบน (Key Metrics)
-    c1, c2, c3, c4 = st.columns(4)
-    latest_score = student_data['Total Score'].iloc[-1]
-    target = student_data['Target Score'].iloc[0]
-    highest = student_data['Highest Score'].iloc[0]
-    
-    c1.metric("คะแนนล่าสุด", latest_score, f"{latest_score - target if latest_score < target else 0} จากเป้าหมาย")
-    c2.metric("เป้าหมาย", int(target))
-    c3.metric("คะแนนสูงสุดที่ทำได้", int(highest))
-    c4.metric("คอร์สเรียน", student_data['Course Level'].iloc[0])
-
-    st.divider()
-
-    # กราฟที่ 1: พัฒนาการคะแนนรวม (Interactive Line Chart)
-    st.subheader("📈 คะแนนรวมย้อนหลัง (Total Score Trend)")
-    fig_line = px.line(student_data, x='Date', y='Total Score', markers=True, 
-                       text='Total Score', template="plotly_white")
-    fig_line.update_traces(textposition="top center", line_color='#2dd4bf')
-    st.plotly_chart(fig_line, use_container_width=True)
-
-    # กราฟที่ 2: วิเคราะห์จุดแข็งรายวิชา (Radar Chart)
-    st.subheader("🎯 วิเคราะห์ความเชี่ยวชาญแยกตามหัวข้อ (Skill Analysis)")
-    st.info("กราฟนี้แสดงเป็นเปอร์เซ็นต์ (%) ยิ่งกว้างแปลว่ายิ่งเก่งในหัวข้อนั้นค่ะ")
-    
-    latest_test = student_data.iloc[-1]
-    
-    # เตรียมข้อมูลสำหรับ Radar Chart
-    categories_rw = ['Craft & Structure', 'Info & Ideas', 'Standard English', 'Expression of Ideas']
-    values_rw = [latest_test['R&W Craft & Structure (%)'], latest_test['R&W Info & Ideas (%)'], 
-                 latest_test['R&W Standard English (%)'], latest_test['R&W Expression of Ideas (%)']]
-    
-    categories_math = ['Algebra', 'Problem Solving', 'Advanced Math', 'Additional Topics']
-    values_math = [latest_test['Math Algebra (%)'], latest_test['Math Problem Solving (%)'], 
-                   latest_test['Math Advanced Math (%)'], latest_test['Math Additional Topics (%)']]
-
-    col_a, col_b = st.columns(2)
-    
-    with col_a:
-        fig_rw = go.Figure(data=go.Scatterpolar(r=values_rw, theta=categories_rw, fill='toself', name='R&W'))
-        fig_rw.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), title="Reading & Writing Breakdown")
-        st.plotly_chart(fig_rw, use_container_width=True)
+  return (
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10 text-slate-900">
+      <div className="mx-auto max-w-7xl space-y-8">
         
-    with col_b:
-        fig_math = go.Figure(data=go.Scatterpolar(r=values_math, theta=categories_math, fill='toself', name='Math', fillcolor='rgba(255, 212, 59, 0.5)'))
-        fig_math.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), title="Math Breakdown")
-        st.plotly_chart(fig_math, use_container_width=True)
+        {/* Top Navigation & Info */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-widest text-sky-600">Performance Hub</span>
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight">{STUDENT.name}</h1>
+          </div>
+          <div className="flex gap-3">
+            <Badge variant="outline" className="bg-white px-4 py-2 text-lg font-bold border-sky-100 shadow-sm">
+              🎯 Target: {STUDENT.target}
+            </Badge>
+            <Badge className="bg-sky-600 px-4 py-2 text-lg font-bold shadow-md shadow-sky-200">
+              🏆 Best: {bestTotal}
+            </Badge>
+          </div>
+        </div>
 
-    # ตารางสรุปผลสอบ
-    with st.expander("📝 ดูประวัติผลสอบทั้งหมด"):
-        st.table(student_data[['Date', 'Test Form', 'Total Score', 'Math Score', 'R&W Score']])
+        {/* Overview Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-none shadow-xl shadow-slate-200/50">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-slate-500 mb-1">Current Progress</p>
+              <div className="flex items-end justify-between mb-2">
+                <span className="text-4xl font-black text-sky-600">{progressPercent}%</span>
+                <span className="text-sm text-slate-400">to Goal</span>
+              </div>
+              <Progress value={progressPercent} className="h-3 bg-sky-100" />
+            </CardContent>
+          </Card>
+          
+          <Card className="border-none shadow-xl shadow-slate-200/50 bg-sky-600 text-white">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-sky-100 mb-1">Latest Attempt Score</p>
+              <div className="text-4xl font-black">{latest.total}</div>
+              <p className="text-xs text-sky-200 mt-2">{latest.dateLabel} • {latest.attemptLabel}</p>
+            </CardContent>
+          </Card>
 
-# --- 4. หน้า Teacher & Admin ---
-else:
-    st.title(f"🛠️ ระบบ {role} (Under Construction)")
-    st.write("ข้อมูลดิบจาก Google Sheet:")
-    st.dataframe(df)
+          <Card className="border-none shadow-xl shadow-slate-200/50">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-slate-500 mb-1">Points Needed</p>
+              <div className="text-4xl font-black text-rose-500">+{STUDENT.target - bestTotal}</div>
+              <p className="text-xs text-slate-400 mt-2">to reach 1500 target</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content: Tabs for Detailed View */}
+        <Tabs defaultValue="analysis" className="space-y-6">
+          <TabsList className="bg-white p-1 border border-slate-200 rounded-xl h-14 shadow-sm">
+            <TabsTrigger value="analysis" className="px-8 rounded-lg font-bold data-[state=active]:bg-sky-50 data-[state=active]:text-sky-600">
+              Skill Analysis (Radar)
+            </TabsTrigger>
+            <TabsTrigger value="history" className="px-8 rounded-lg font-bold data-[state=active]:bg-sky-50 data-[state=active]:text-sky-600">
+              Score History
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="analysis" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Radar Chart: Math */}
+              <Card className="border-none shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-lg">Math Skill Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={selectedAttempt.mathTopics}>
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 12 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar
+                        name="Math"
+                        dataKey="score"
+                        stroke="#0284c7"
+                        fill="#0ea5e9"
+                        fillOpacity={0.5}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Radar Chart: R&W */}
+              <Card className="border-none shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-lg">Reading & Writing Skill Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={selectedAttempt.rwTopics}>
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 12 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar
+                        name="R&W"
+                        dataKey="score"
+                        stroke="#f43f5e"
+                        fill="#fb7185"
+                        fillOpacity={0.5}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Incorrect Questions Section */}
+            <Card className="border-none shadow-lg overflow-hidden">
+                <CardHeader className="bg-slate-900 text-white">
+                    <CardTitle className="text-lg">Review Incorrect Questions - {selectedAttempt.attemptLabel}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-rose-500"/> Reading & Writing
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {selectedAttempt.wrongQuestions.rw.map(q => (
+                                <Badge key={q} variant="secondary" className="h-10 w-10 justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100">Q{q}</Badge>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-amber-500"/> Math
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {selectedAttempt.wrongQuestions.math.map(q => (
+                                <Badge key={q} variant="secondary" className="h-10 w-10 justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100">Q{q}</Badge>
+                            ))}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card className="border-none shadow-lg h-[500px] p-6">
+               <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={attempts}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="attemptLabel" axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
+                    <YAxis domain={[0, 1600]} axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
+                    <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                    <Legend iconType="circle" />
+                    <Bar dataKey="math" name="Math" stackId="a" fill="#0ea5e9" radius={[0, 0, 0, 0]} barSize={40} />
+                    <Bar dataKey="rw" name="R&W" stackId="a" fill="#f43f5e" radius={[10, 10, 0, 0]} barSize={40} />
+                  </BarChart>
+               </ResponsiveContainer>
+          </TabsContent>
+        </Tabs>
+
+        {/* Footer Advice */}
+        <div className="rounded-2xl bg-sky-50 border border-sky-100 p-6 text-center">
+            <h3 className="font-bold text-sky-900 mb-2">💡 Nong Jaidee's Smart Advice</h3>
+            <p className="text-sky-700">"พยายามเน้นที่หัวข้อ {selectedAttempt.mathTopics.sort((a,b)=>a.score-b.score)[0].subject} ในพาร์ท Math นะคะ เพราะเป็นจุดที่มีโอกาสเพิ่มคะแนนได้มากที่สุดค่ะ!"</p>
+        </div>
+      </div>
+    </div>
+  );
+}
