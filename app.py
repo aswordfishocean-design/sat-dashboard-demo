@@ -1,108 +1,133 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 
-# --- 1. เชื่อมต่อข้อมูลจาก Google Sheet V2 ---
-sheet_id = "1qTeQHY74MxOPx_gxXwrkB4pX8bRrqaG4WTox3vHIPVw" 
-sheet_name = "SAT%20Information%20Dashboard%20V2"
-url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+# --- 1. ข้อมูลดิบ (อ้างอิงตาม 5 Attempts ในรูปของพี่มหา) ---
+attempts_data = [
+    {"id": "A1", "label": "Attempt 1", "date": "Apr 20, 2026", "rw": 580, "math": 640, "total": 1220},
+    {"id": "A2", "label": "Attempt 2", "date": "Apr 21, 2026", "rw": 610, "math": 600, "total": 1210},
+    {"id": "A3", "label": "Attempt 3", "date": "Apr 22, 2026", "rw": 580, "math": 640, "total": 1220},
+    {"id": "A4", "label": "Attempt 4", "date": "Apr 23, 2026", "rw": 600, "math": 570, "total": 1170},
+    {"id": "A5", "label": "Attempt 5", "date": "Apr 24, 2026", "rw": 620, "math": 720, "total": 1340},
+]
+# ข้อมูลเจาะลึกของ Attempt 5 (ล่าสุด)
+latest_topics = {
+    "rw": [
+        {"name": "Craft & Structure", "score": "10/12", "pct": 83},
+        {"name": "Information & Ideas", "score": "14/16", "pct": 88},
+        {"name": "Standard English Conventions", "score": "10/14", "pct": 71},
+        {"name": "Expression of Ideas", "score": "9/12", "pct": 75},
+    ]
+}
 
-@st.cache_data(ttl=60) # อัปเดตข้อมูลทุก 1 นาที
-def load_data():
-    df = pd.read_csv(url)
-    df['Date'] = pd.to_datetime(df['Date']).dt.date
-    return df
-
-try:
-    df = load_data()
-except Exception as e:
-    st.error(f"เชื่อมต่อข้อมูลไม่ได้: {e}")
-    st.stop()
-
-# --- 2. ตั้งค่าหน้าตาแอป (aims Branding) ---
+# --- 2. ตั้งค่าหน้าตาแอป (Theme Blue/White) ---
 st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
 
-# ปรับ CSS ให้ดู Professional เหมือนแอปจริง
 st.markdown("""
     <style>
-    .main { background-color: #f8fafc; }
-    div[data-testid="metric-container"] {
-        background-color: white;
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        border: 1px solid #e2e8f0;
-    }
+    .main { background-color: #f0f9ff; }
+    .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .attempt-card { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #e0f2fe; }
+    .topic-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #f1f5f9; border-radius: 10px; margin-bottom: 8px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. ส่วน Login ---
-st.sidebar.title("🔐 Login Portal")
-role = st.sidebar.radio("บทบาท:", ["Student", "Teacher", "Admin"])
+# --- 3. Header & Metrics ---
+st.markdown("<div style='display: flex; align-items: center; gap: 10px;'><span style='background-color: #0284c7; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold;'>Digital SAT</span><span style='color: #64748b; font-size: 14px;'>Performance Report</span></div>", unsafe_allow_html=True)
+st.title("Aphiphongphiphut Kaweeyarn")
+st.markdown("<p style='color: #64748b;'>Target Score: <b>1500</b></p>", unsafe_allow_html=True)
 
-if role == "Student":
-    # เลือกชื่อนักเรียน
-    student_list = df['Student Name'].unique()
-    student_name = st.sidebar.selectbox("เลือกชื่อนักเรียน:", student_list)
-    student_data = df[df['Student Name'] == student_name].sort_values('Date')
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("✨ Latest Score", "1340", "Attempt 5 • Apr 24, 2026")
+with col2:
+    st.metric("🏆 Best Score Achieved", "1340", "Attempt 5 • Apr 24, 2026")
+with col3:
+    gap = 1500 - 1340
+    st.metric("🎯 Progress to Target", "89%", f"Gap: {gap}")
+    st.progress(0.89)
+
+st.divider()
+
+# --- 4. Main Content Layout ---
+left_col, right_col = st.columns([2, 1])
+
+with left_col:
+    st.subheader("Score Trend (Click a bar to inspect)")
+    st.caption("X-axis: 200–800 scale • Y-axis: attempts")
     
-    # ส่วนหัว Dashboard
-    st.title(f"✨ Performance Report: {student_name}")
-    st.caption(f"Digital SAT Tracker • {student_data['Course Level'].iloc[0]}")
+    # สร้างกราฟแท่งแนวนอน (Horizontal Bar Chart)
+    fig = go.Figure()
     
-    # --- KPIs สรุปผล ---
-    latest = student_data.iloc[-1]
-    target = latest['Target Score']
-    best = student_data['Total Score'].max()
+    # Math Bar (สีฟ้าเข้ม)
+    fig.add_trace(go.Bar(
+        y=[a['label'] + f" ({a['date']})" for a in attempts_data],
+        x=[a['math'] for a in attempts_data],
+        name='Math',
+        orientation='h',
+        marker=dict(color='#0284c7', line=dict(color='#0284c7', width=1)),
+        width=0.4
+    ))
     
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("คะแนนล่าสุด", int(latest['Total Score']), f"{int(latest['Total Score'] - target)} vs Target")
-    with c2:
-        st.metric("คะแนนสูงสุด (Best)", int(best))
-    with c3:
-        progress = int((best / target) * 100)
-        st.metric("ความสำเร็จ", f"{progress}%")
-        st.progress(progress / 100)
+    # R&W Bar (แท่งโปร่งขอบฟ้า)
+    fig.add_trace(go.Bar(
+        y=[a['label'] + f" ({a['date']})" for a in attempts_data],
+        x=[a['rw'] for a in attempts_data],
+        name='Reading & Writing',
+        orientation='h',
+        marker=dict(color='rgba(0,0,0,0)', line=dict(color='#0284c7', width=2)),
+        width=0.4
+    ))
 
-    st.divider()
-
-    # --- กราฟวิเคราะห์ ---
-    col_left, col_right = st.columns([2, 1.2])
+    fig.update_layout(
+        barmode='group',
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(range=[200, 800], gridcolor='#f1f5f9', dtick=100),
+        yaxis=dict(autorange="reversed"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=0, r=0, t=30, b=0),
+        height=500
+    )
+    st.plotly_chart(fig, use_container_width=True)
     
-    with col_left:
-        st.subheader("📈 Score Trend (พัฒนาการย้อนหลัง)")
-        fig_trend = px.line(student_data, x='Date', y='Total Score', markers=True, text='Total Score', template="plotly_white")
-        fig_trend.update_traces(textposition="top center", line_color='#0284c7', marker=dict(size=10))
-        fig_trend.update_layout(yaxis_range=[400, 1600])
-        st.plotly_chart(fig_trend, use_container_width=True)
+    # ปุ่มเลือก Attempt ด้านล่างกราฟ
+    st.write(" ")
+    cols = st.columns(len(attempts_data))
+    for i, a in enumerate(attempts_data):
+        cols[i].button(a['label'], key=a['id'], use_container_width=True)
 
-    with col_right:
-        st.subheader("🎯 Skill Radar (วิเคราะห์จุดแข็ง-อ่อน)")
-        # ข้อมูลสำหรับ Radar Chart
-        rw_cats = ['Craft & Structure', 'Info & Ideas', 'Standard English', 'Expression of Ideas']
-        rw_vals = [latest['R&W Craft & Structure (%)'], latest['R&W Info & Ideas (%)'], 
-                   latest['R&W Standard English (%)'], latest['R&W Expression of Ideas (%)']]
-        
-        math_cats = ['Algebra', 'Problem Solving', 'Advanced Math', 'Additional Topics']
-        math_vals = [latest['Math Algebra (%)'], latest['Math Problem Solving (%)'], 
-                     latest['Math Advanced Math (%)'], latest['Math Additional Topics (%)']]
-        
-        fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(r=rw_vals, theta=rw_cats, fill='toself', name='Reading & Writing', line_color='#f43f5e'))
-        fig_radar.add_trace(go.Scatterpolar(r=math_vals, theta=math_cats, fill='toself', name='Math', line_color='#0ea5e9'))
-        
-        fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=True)
-        st.plotly_chart(fig_radar, use_container_width=True)
-
-    # --- ส่วนแนะนำจากน้องใจดี ---
-    st.subheader("📝 Smart Insights โดยน้องใจดี")
+with right_col:
     with st.container():
-        st.info(f"💡 สำหรับครั้งล่าสุด น้อง {student_name} ทำได้ดีมากในพาร์ทที่คะแนนสูงสุดคือ {max(rw_vals + math_vals)}% ค่ะ! พยายามเน้นหัวข้อที่กราฟใยแมงมุมยุบตัวลงไปเพื่อเพิ่มคะแนนให้ถึง {int(target)} นะคะ")
+        st.markdown("<div class='attempt-card'>", unsafe_allow_html=True)
+        st.subheader("Attempt Detail")
+        st.caption("Click any bar to switch subject & attempt.")
+        
+        # ส่วนหัวของ Card
+        c_a, c_b = st.columns([2, 1])
+        c_a.markdown("**Attempt 5**<br><span style='color: #64748b;'>Apr 24, 2026</span>", unsafe_allow_html=True)
+        c_b.markdown("<span style='background-color: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 20px; font-weight: bold;'>Total 1340</span>", unsafe_allow_html=True)
+        
+        # คะแนนแยกวิชา
+        s1, s2 = st.columns(2)
+        s1.markdown("<div style='border: 1px solid #e2e8f0; padding: 10px; border-radius: 15px;'> <span style='font-size: 12px; color: #64748b;'>Math</span><br><b style='font-size: 20px;'>720</b><br><span style='font-size: 12px; color: #0284c7;'>Strong</span> </div>", unsafe_allow_html=True)
+        s2.markdown("<div style='border: 1px solid #e2e8f0; padding: 10px; border-radius: 15px;'> <span style='font-size: 12px; color: #64748b;'>R&W</span><br><b style='font-size: 20px;'>620</b><br><span style='font-size: 12px; color: #0284c7;'>Developing</span> </div>", unsafe_allow_html=True)
+        
+        # Tabs สำหรับ Breakdown
+        t1, t2 = st.tabs(["Math", "R&W"])
+        with t2: # ตัวอย่างแสดง R&W ตามรูป
+            st.markdown("<div style='display: flex; justify-content: space-between;'><b>Topic Breakdown</b> <span style='background-color: #0284c7; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;'>80%</span></div>", unsafe_allow_html=True)
+            st.caption("Correct 43/54")
+            
+            for topic in latest_topics['rw']:
+                st.markdown(f"""
+                    <div class='topic-row'>
+                        <span style='font-size: 13px;'>{topic['name']}</span>
+                        <span style='font-size: 13px;'><b>{topic['score']}</b> <span style='color: #64748b; font-weight: bold;'>{topic['pct']}%</span></span>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("<div style='background-color: #f0f9ff; padding: 15px; border-radius: 15px; margin-top: 15px;'><b style='color: #0369a1;'>ℹ️ Smart Insight</b><p style='font-size: 13px; color: #0c4a6e; margin-top: 5px;'>Best total score is <b>1340</b>. To reach target <b>1500</b>, student needs <b>160</b> more points.</p></div>", unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 
-else:
-    # หน้าสำหรับบทบาทอื่น
-    st.title(f"🛠️ ระบบจัดการสำหรับ {role}")
-    st.write("ตารางข้อมูลนักเรียนทั้งหมด:")
-    st.dataframe(df, use_container_width=True)
+st.markdown("<br><div style='text-align: center; color: #94a3b8; font-size: 12px;'>Prototype UI • Clean Blue/White Theme • Clickable Interactive Report</div>", unsafe_allow_html=True)
