@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-# --- 1. การเชื่อมต่อข้อมูล (Google Sheet V3 ล่าสุด) ---
+# --- 1. เชื่อมต่อฐานข้อมูล V3 (ล่าสุดที่มีข้อมูลน้อง Pharin และ Aphiphongphiphut ครบ 16 รายการ) ---
 sheet_id = "1ZqScd-XtnaR6zTITejMVIbpIW-MAXa2YphOu6PXaCiI" 
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv"
 
-@st.cache_data(ttl=10) # ตั้งให้รีเฟรชไวขึ้นเป็น 10 วินาทีเพื่อความสดใหม่
+@st.cache_data(ttl=10)
 def load_data():
     df = pd.read_csv(url)
     df['Date'] = pd.to_datetime(df['Date']).dt.date
@@ -15,10 +15,10 @@ def load_data():
 try:
     df = load_data()
 except Exception as e:
-    st.error(f"ไม่สามารถเชื่อมต่อข้อมูลได้: {e}")
+    st.error(f"เชื่อมต่อข้อมูลไม่ได้: {e}")
     st.stop()
 
-# --- 2. การตั้งค่าหน้าตาแอป & CSS ---
+# --- 2. ตั้งค่าหน้าตาแอป & CSS ---
 st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
 
 st.markdown("""
@@ -36,44 +36,41 @@ st.markdown("""
 st.sidebar.title("🔐 aims Portal")
 role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Admin"])
 
-# ==========================================
-# 4. หน้า STUDENTS (Professional View)
-# ==========================================
 if role == "Student":
     student_list = df['Student Name'].unique()
     student_name = st.sidebar.selectbox("เลือกชื่อนักเรียน:", student_list)
     
-    # กรองข้อมูล
+    # กรองข้อมูลและ Reset Index เพื่อความแม่นยำ
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
-    if s_data.empty:
-        st.warning("ยังไม่มีข้อมูลของนักเรียนคนนี้ในระบบ")
+    if len(s_data) == 0:
+        st.warning("ไม่พบข้อมูลนักเรียนคนนี้ในระบบ")
     else:
-        # --- [SAFETY CHECK] ตรวจสอบและรีเซ็ตลำดับ Attempt ---
-        if 'selected_idx' not in st.session_state or st.session_state.get('last_student') != student_name:
+        # --- [จุดแก้ไขสำคัญ] ระบบล็อค Index ให้ปลอดภัย ---
+        # 1. ถ้าเปลี่ยนชื่อคน ให้รีเซ็ตไปที่ครั้งล่าสุดของคนนั้นเสมอ
+        if "active_student" not in st.session_state or st.session_state.active_student != student_name:
+            st.session_state.active_student = student_name
             st.session_state.selected_idx = len(s_data) - 1
-            st.session_state.last_student = student_name # จำไว้ว่าล่าสุดดูใครอยู่
-
-        # ตรวจสอบอีกชั้นว่า Index ไม่เกินจำนวนที่มีอยู่จริง
+            
+        # 2. ตรวจสอบว่า Index ที่จำไว้ ไม่เกินจำนวนครั้งที่สอบจริง
         if st.session_state.selected_idx >= len(s_data):
             st.session_state.selected_idx = len(s_data) - 1
-
+        
+        # 3. ดึงข้อมูลมาแสดงผล (ใช้ค่าที่ผ่านการเช็คแล้ว)
         current_idx = st.session_state.selected_idx
         selected_attempt = s_data.iloc[current_idx]
+        
         best_score = s_data['Total Score'].max()
         target = 1500 
 
-        # Header
+        # Header & Metrics
         st.markdown("<div style='display: flex; align-items: center; gap: 10px;'><span style='background-color: #0284c7; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold;'>Digital SAT</span><span style='color: #64748b; font-size: 14px;'>Performance Report</span></div>", unsafe_allow_html=True)
         st.title(f"{student_name}")
-        st.markdown(f"<p style='color: #64748b;'>Target Score: <b>{target}</b> | Course: SAT Camp</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color: #64748b;'>Target Score: <b>{target}</b></p>", unsafe_allow_html=True)
 
-        # Top KPI Cards
         c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("✨ Selected Score", int(selected_attempt['Total Score']), f"Attempt {current_idx + 1}")
-        with c2:
-            st.metric("🏆 Best Score Achieved", int(best_score))
+        with c1: st.metric("✨ Selected Score", int(selected_attempt['Total Score']), f"Attempt {current_idx + 1}")
+        with c2: st.metric("🏆 Best Score Achieved", int(best_score))
         with c3:
             progress = int((best_score / target) * 100)
             gap = target - int(best_score)
@@ -82,7 +79,7 @@ if role == "Student":
 
         st.divider()
 
-        # Layout: 2 Column
+        # Layout 2 Columns
         left_col, right_col = st.columns([2, 1])
 
         with left_col:
@@ -123,9 +120,6 @@ if role == "Student":
             st.markdown(f"<div class='insight-box'><b style='color: #0369a1;'>ℹ️ Smart Insight</b><br><span style='font-size: 13px; color: #0c4a6e;'>คะแนนสูงสุดของน้องคือ <b>{int(best_score)}</b> ขาดอีก <b>{target - int(best_score)}</b> คะแนนจะถึงเป้า 1500 ค่ะ</span></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
-# 5. หน้า ADMIN
-# ==========================================
 else:
     st.title("⚙️ aims Admin Control")
     st.dataframe(df, use_container_width=True)
