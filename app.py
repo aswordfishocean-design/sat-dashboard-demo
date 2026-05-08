@@ -39,7 +39,7 @@ incorrect_mapping = {
         "At 3": "Math: Q4, Q7, Q10, Q13, Q17 (Algebra) | R&W: Q1, Q3, Q7, Q10, Q14 (Craft)",
         "At 4": "Math: Q1, Q10, Q14, Q15 (Problem Solving/Adv. Math) | R&W: Q1, Q4, Q9, Q12, Q16 (Ideas)",
         "At 5": "Math: Q15, Q16, Q18, Q22 (Algebra) | R&W: Q3, Q5, Q9, Q14, Q17 (Craft)",
-        "At 6": "Math: Q18, Q20, Q21 (Algebra/Additional) | R&W: Q4, Q9, Q13, Q18, Q20 (Std. Eng)",
+        "At 6": "Math: Q18, Q20, Q21 (Algebra/Additional) | R&W: Q4, Q9, Q13, R&W: Q18, Q20 (Std. Eng)",
         "At 7": "Math: Q9, Q11, Q19, Q20 (Algebra/Additional) | R&W: Q1, Q3, Q11, Q13, Q20 (Std. Eng)",
         "At 8": "Math: Q5, Q14, Q17, Q21 (Adv. Math/Additional) | R&W: Q1, Q4, Q5, Q11, Q16 (Ideas)"
     }
@@ -50,7 +50,7 @@ st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
 
 st.markdown("""
     <style>
-    .main { background-color: #fcfdfe; }
+    .main { background-color: #ffffff; }
     
     /* Target Score & Student Name Section */
     .student-name-title { text-align: center; color: #002d56; font-size: 50px; font-weight: 900; margin-top: 20px; margin-bottom: 5px; }
@@ -71,10 +71,8 @@ st.sidebar.title("🔐 aims Portal")
 role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Admin"])
 
 if role == "Student" and df is not None:
-    # ---------------------------------------------------------
-    # LAYOUT แถวบนสุด: ซ้าย=เลือกนักเรียน | ขวา=โลโก้ชิดขวา
-    # ---------------------------------------------------------
-    top_left, top_space, top_right = st.columns([1.2, 1, 1.2])
+    # --- LAYOUT แถวบนสุด ---
+    top_left, top_right = st.columns([1.5, 1])
     
     with top_left:
         student_list = sorted(df['Student Name'].unique())
@@ -82,7 +80,6 @@ if role == "Student" and df is not None:
         student_name = st.selectbox("เลือกนักเรียนที่ต้องการดูข้อมูล:", student_list, on_change=reset_idx)
         
     with top_right:
-        # เทคนิคแปลงรูปเป็น Base64 เพื่อให้ล็อกชิดขวาได้ 100% ค่ะ
         logo_path = "aims_logo_2014_01_crop_blue_200x50px.png"
         if os.path.exists(logo_path):
             with open(logo_path, "rb") as img_file:
@@ -101,7 +98,6 @@ if role == "Student" and df is not None:
             </div>
         ''', unsafe_allow_html=True)
 
-    # --- ดึงข้อมูลนักเรียน ---
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
     if not s_data.empty:
@@ -114,9 +110,7 @@ if role == "Student" and df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        # ---------------------------------------------------------
-        # LAYOUT แถวกลาง: ชื่อนักเรียน และ 1500 อยู่ตรงกลางเป๊ะๆ
-        # ---------------------------------------------------------
+        # --- แถวกลาง: ชื่อนักเรียน และ Target 1500 ---
         st.markdown(f"<div class='student-name-title'>{student_name}</div>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-container">
@@ -125,7 +119,6 @@ if role == "Student" and df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-        # KPI Metrics
         m1, m2, m3 = st.columns(3)
         with m1: st.metric("คะแนนครั้งที่เลือก", int(selected_attempt['Total Score']), f"At {c_idx+1}")
         with m2: st.metric("คะแนนสูงสุด (Best)", int(best_score))
@@ -136,7 +129,7 @@ if role == "Student" and df is not None:
 
         st.divider()
 
-        # --- 6. Layout กราฟ (Blue & White) และรายละเอียด ---
+        # --- 6. กราฟฟ้า-ขาว (แก้ไขใหม่เพื่อแก้ปัญหาสีไม่เปลี่ยน) ---
         left, right = st.columns([1.7, 1.3])
 
         with left:
@@ -144,33 +137,32 @@ if role == "Student" and df is not None:
             fig = go.Figure()
             labels = [f"At {i+1}" for i in range(len(s_data))]
             
-            # Math: สีฟ้าทึบ (Solid Blue) #002d56
+            # Math: สีฟ้าทึบ (aims Blue)
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['Math Score'], name='Math', 
-                marker_color='#002d56'
+                marker_color='#002d56',  # บังคับสี HEX โดยตรง
+                marker_line_width=0
             ))
-            # R&W: สีขาวขอบฟ้า (Solid White with Blue Border) #ffffff
+            # R&W: สีขาวทึบขอบฟ้า
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
-                marker=dict(
-                    color='#ffffff', 
-                    line=dict(color='#002d56', width=2) 
-                )
+                marker_color='#ffffff',  # บังคับสีขาวทึบ
+                marker_line_color='#002d56', # ขอบสีน้ำเงิน aims
+                marker_line_width=3
             ))
             
             fig.update_layout(
                 barmode='group',
-                plot_bgcolor='#ffffff', # บังคับพื้นหลังกราฟเป็นสีขาว
-                paper_bgcolor='#ffffff',
-                xaxis=dict(title="Attempts"),
+                plot_bgcolor='white',  # บังคับพื้นหลังขาวเพื่อให้แท่งสีขาวลอยตัว
+                paper_bgcolor='white',
+                xaxis=dict(title="Attempts", linecolor='#e2e8f0'),
                 yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 400, 600, 800], gridcolor='#f1f5f9'),
                 height=500,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            # บังคับ theme=None เด็ดขาด เพื่อไม่ให้ Streamlit ดึงสีมั่วค่ะ!
+            # บังคับ theme=None อย่างเข้มงวด
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
-            # ปุ่มเลือกดู Attempt
             st.write("🔍 เลือกครั้งที่ต้องการเจาะลึกข้อมูลด้านข้างค่ะ:")
             btn_cols = st.columns(len(s_data))
             for i in range(len(s_data)):
