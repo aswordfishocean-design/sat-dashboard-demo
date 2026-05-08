@@ -16,7 +16,6 @@ def load_data():
         data['Date'] = pd.to_datetime(data['Date']).dt.date
         return data
     except Exception as e:
-        st.error(f"หนูเชื่อมต่อข้อมูลไม่ได้ค่ะ: {e}")
         return None
 
 df = load_data()
@@ -50,19 +49,29 @@ st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
 
 st.markdown("""
     <style>
-    .main { background-color: #ffffff; }
+    /* บังคับพื้นหลังขาวสะอาดตา */
+    .stApp { background-color: #ffffff; }
     
-    /* Target Score & Student Name Section */
-    .student-name-title { text-align: center; color: #002d56; font-size: 50px; font-weight: 900; margin-top: 20px; margin-bottom: 5px; }
-    .target-container { text-align: center; margin-top: 0px; margin-bottom: 40px; }
+    /* ชื่อนักเรียนอยู่ตรงกลางเป๊ะๆ */
+    .student-name-center { 
+        text-align: center; 
+        color: #002d56; 
+        font-size: 52px; 
+        font-weight: 900; 
+        margin-top: 20px; 
+        width: 100%;
+    }
+    
+    /* เป้าหมายอยู่ตรงกลาง */
+    .target-container { text-align: center; margin-bottom: 40px; }
     .target-label { font-size: 24px; color: #64748b; font-weight: 700; letter-spacing: 5px; }
-    .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
+    .target-huge { font-size: 160px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
     
-    .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; }
-    .attempt-card { background-color: white; padding: 30px; border-radius: 25px; border: 1px solid #f1f5f9; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
-    .topic-box { background-color: #ffffff; padding: 12px 18px; border-radius: 15px; border: 1px solid #f1f5f9; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .attempt-card { background-color: white; padding: 30px; border-radius: 25px; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .topic-box { background-color: #ffffff; padding: 12px 18px; border-radius: 15px; border: 1px solid #f1f5f9; margin-bottom: 10px; display: flex; justify-content: space-between; }
     .insight-box { background-color: #f0f9ff; padding: 25px; border-radius: 20px; border: 1px solid #e0f2fe; margin-top: 20px; }
-    .error-chip { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 12px 15px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-top: 10px; display: block; }
+    .error-chip { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 12px 15px; border-radius: 12px; font-size: 14px; font-weight: 600; display: block; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -71,20 +80,22 @@ st.sidebar.title("🔐 aims Portal")
 role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Admin"])
 
 if role == "Student" and df is not None:
-    # --- LAYOUT แถวบนสุด ---
-    top_left, top_right = st.columns([1.5, 1])
+    # --- LAYOUT แถวบนสุด: ซ้าย=เลือกชื่อ | ขวา=โลโก้ ---
+    header_left, header_right = st.columns([1, 1])
     
-    with top_left:
+    with header_left:
         student_list = sorted(df['Student Name'].unique())
         def reset_idx(): st.session_state.selected_idx = 0
         student_name = st.selectbox("เลือกนักเรียนที่ต้องการดูข้อมูล:", student_list, on_change=reset_idx)
         
-    with top_right:
+    with header_right:
+        # ระบบโหลดโลโก้แบบปลอดภัย
         logo_path = "aims_logo_2014_01_crop_blue_200x50px.png"
+        img_html = ""
         if os.path.exists(logo_path):
-            with open(logo_path, "rb") as img_file:
-                logo_b64 = base64.b64encode(img_file.read()).decode()
-            img_html = f'<img src="data:image/png;base64,{logo_b64}" width="220">'
+            with open(logo_path, "rb") as f:
+                data = base64.b64encode(f.read()).decode()
+            img_html = f'<img src="data:image/png;base64,{data}" width="220">'
         else:
             img_html = '<img src="https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png" width="220">'
             
@@ -110,8 +121,8 @@ if role == "Student" and df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        # --- แถวกลาง: ชื่อนักเรียน และ Target 1500 ---
-        st.markdown(f"<div class='student-name-title'>{student_name}</div>", unsafe_allow_html=True)
+        # --- แถวกลาง: ชื่อนักเรียน และ Target 1500 ตรงกลางเป๊ะๆ ---
+        st.markdown(f"<div class='student-name-center'>{student_name}</div>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-container">
                 <div class="target-label">TARGET SCORE</div>
@@ -129,7 +140,7 @@ if role == "Student" and df is not None:
 
         st.divider()
 
-        # --- 6. กราฟฟ้า-ขาว (แก้ไขใหม่เพื่อแก้ปัญหาสีไม่เปลี่ยน) ---
+        # --- 6. กราฟฟ้า-ขาว (Hard-coded Colors) ---
         left, right = st.columns([1.7, 1.3])
 
         with left:
@@ -140,30 +151,30 @@ if role == "Student" and df is not None:
             # Math: สีฟ้าทึบ (aims Blue)
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['Math Score'], name='Math', 
-                marker_color='#002d56',  # บังคับสี HEX โดยตรง
-                marker_line_width=0
+                marker=dict(color='#002d56')
             ))
             # R&W: สีขาวทึบขอบฟ้า
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
-                marker_color='#ffffff',  # บังคับสีขาวทึบ
-                marker_line_color='#002d56', # ขอบสีน้ำเงิน aims
-                marker_line_width=3
+                marker=dict(
+                    color='#ffffff',  # สีขาวทึบ
+                    line=dict(color='#002d56', width=3) # ขอบน้ำเงิน aims
+                )
             ))
             
             fig.update_layout(
                 barmode='group',
-                plot_bgcolor='white',  # บังคับพื้นหลังขาวเพื่อให้แท่งสีขาวลอยตัว
-                paper_bgcolor='white',
+                plot_bgcolor='white',  # บังคับพื้นกราฟขาว
+                paper_bgcolor='white', # บังคับพื้นกระดาษขาว
                 xaxis=dict(title="Attempts", linecolor='#e2e8f0'),
                 yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 400, 600, 800], gridcolor='#f1f5f9'),
                 height=500,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            # บังคับ theme=None อย่างเข้มงวด
+            # บังคับ theme=None อย่างเด็ดขาดเพื่อให้สีทำงานตามสั่งค่ะ!
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
-            st.write("🔍 เลือกครั้งที่ต้องการเจาะลึกข้อมูลด้านข้างค่ะ:")
+            st.write("🔍 เลือกครั้งที่ต้องการดูรายละเอียดด้านข้างค่ะ:")
             btn_cols = st.columns(len(s_data))
             for i in range(len(s_data)):
                 if btn_cols[i].button(f"At {i+1}", key=f"btn_{i}", use_container_width=True, type="primary" if i == c_idx else "secondary"):
@@ -204,13 +215,13 @@ if role == "Student" and df is not None:
                 st.markdown(f"""
                     <div style='font-size: 14px; color: #1e293b; line-height: 1.7; margin: 15px 0;'>
                         หนูวิเคราะห์ข้อมูลครั้งนี้ให้แล้วนะคะ จุดที่น้องต้องเร่งเสริมเพื่อให้ถึง 1500 คือหัวข้อ <b>{weak_t}</b> ค่ะ 
-                        ซึ่งทำได้เพียง <b>{int(all_topics[weak_t])}%</b> ในรอบนี้ หนูแนะนำให้พี่เน้นให้น้องทำโจทย์หัวข้อนี้เพิ่มขึ้นเป็นพิเศษนะคะ สู้ๆ ค่ะ!
+                        ซึ่งทำได้เพียง <b>{int(all_topics[weak_t])}%</b> ในรอบนี้ หนูแนะนำให้พี่มหาเน้นให้น้องทำโจทย์หัวข้อนี้เพิ่มขึ้นนะคะ สู้ๆ ค่ะ!
                     </div>
                 """, unsafe_allow_html=True)
             
             st.markdown("<b style='color: #002d56;'>📝 Incorrect Questions Analysis</b>", unsafe_allow_html=True)
             at_key = f"At {c_idx+1}"
-            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "หนูกำลังอัปเดตข้อมูล PDF ให้อยู่นะคะ")
+            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "หนูกำลังดึงข้อมูลจาก PDF ให้นะคะ")
             st.markdown(f"<div class='error-chip'>{incorrect_info}</div>", unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
