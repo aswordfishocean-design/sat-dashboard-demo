@@ -43,7 +43,7 @@ if 'selected_attempt_idx' not in st.session_state:
 student_name = "Aphiphongphiphut Kaweeyarn"
 s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
 best_score = s_data['Total Score'].max()
-target = 1500
+target = 1500  # กำหนดเป้าหมาย 1500 คะแนนเท่ากันทุกคนตามที่พี่มหาต้องการ
 
 st.markdown("<div style='display: flex; align-items: center; gap: 10px;'><span style='background-color: #0284c7; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold;'>Digital SAT</span><span style='color: #64748b; font-size: 14px;'>Performance Report</span></div>", unsafe_allow_html=True)
 st.title(student_name)
