@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
-# --- 1. การเชื่อมต่อข้อมูล (V3) ---
+# --- 1. การเชื่อมต่อข้อมูล ---
 sheet_id = "1ZqScd-XtnaR6zTITejMVIbpIW-MAXa2YphOu6PXaCiI" 
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
@@ -20,66 +20,81 @@ def load_data():
 
 df = load_data()
 
-# --- 2. ฐานข้อมูล Incorrect Questions (At 1 - At 8) ---
+# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) สกัดจาก PDF ---
 incorrect_mapping = {
     "Aphiphongphiphut Kaweeyarn": {
-        "At 1": "Math: Q12, Q16, Q17, Q21 (Adv. Math/Add.) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
+        "At 1": "Math: Q12, Q16, Q17, Q21 (Advanced Math/Additional) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
         "At 2": "Math: Q1, Q6, Q14, Q16, Q17, Q18, Q20 (Algebra) | R&W: Q3, Q10, Q11, Q15, Q16 (Ideas)",
-        "At 3": "Math: Q4, Q15, Q19, Q20 (Algebra/Add.) | R&W: Q3, Q9, Q11, Q14, Q15 (Ideas)",
-        "At 4": "Math: Q1, Q10, Q13, Q14 (Algebra/Problem) | R&W: Q1, Q3, Q4, Q7, Q11, Q14 (Craft)",
-        "At 5": "Math: Q1, Q9, Q10, Q13 (Algebra/Problem) | R&W: Q1, Q14, Q19, Q21 (Std. Eng)",
+        "At 3": "Math: Q4, Q15, Q19, Q20 (Algebra/Additional) | R&W: Q3, Q9, Q11, Q14, Q15 (Ideas)",
+        "At 4": "Math: Q1, Q10, Q13, Q14 (Algebra/Problem Solving) | R&W: Q1, Q3, Q4, Q7, Q11, Q14 (Craft)",
+        "At 5": "Math: Q1, Q9, Q10, Q13 (Algebra/Problem Solving) | R&W: Q1, Q14, Q19, Q21 (Std. Eng)",
         "At 6": "Math: Q14, Q18, Q20 (Adv. Math) | R&W: Q1, Q3, Q4, Q11, Q15 (Craft)",
         "At 7": "Math: Q3, Q9, Q13, Q17 (Adv. Math/Algebra) | R&W: Q1, Q3, Q11, Q13, Q15 (Ideas)",
-        "At 8": "Math: Q7, Q14, Q18, Q20 (Adv. Math/Problem) | R&W: Q1, Q3, Q4, Q11, Q15 (Craft/Ideas)"
+        "At 8": "Math: Q7, Q14, Q18, Q20 (Adv. Math/Problem Solving) | R&W: Q1, Q3, Q4, Q11, Q15 (Craft/Ideas)"
     },
     "Pharin Chantapakul": {
-        "At 1": "Math: Q1, Q7, Q13, Q20, Q22 (Algebra/Add.) | R&W: Q4, Q6, Q13, Q15, Q17 (Ideas)",
-        "At 2": "Math: Q3, Q4, Q10, Q13 (Adv. Math/Problem) | R&W: Q2, Q11, Q13, Q17, Q20 (Std. Eng)",
+        "At 1": "Math: Q1, Q7, Q13, Q20, Q22 (Algebra/Additional) | R&W: Q4, Q6, Q13, Q15, Q17 (Ideas)",
+        "At 2": "Math: Q3, Q4, Q10, Q13 (Advanced Math/Problem Solving) | R&W: Q2, Q11, Q13, Q17, Q20 (Std. Eng)",
         "At 3": "Math: Q4, Q7, Q10, Q13, Q17 (Algebra) | R&W: Q1, Q3, Q7, Q10, Q14 (Craft)",
-        "At 4": "Math: Q1, Q10, Q14, Q15 (Problem/Adv. Math) | R&W: Q1, Q4, Q9, Q12, Q16 (Ideas)",
+        "At 4": "Math: Q1, Q10, Q14, Q15 (Problem Solving/Adv. Math) | R&W: Q1, Q4, Q9, Q12, Q16 (Ideas)",
         "At 5": "Math: Q15, Q16, Q18, Q22 (Algebra) | R&W: Q3, Q5, Q9, Q14, Q17 (Craft)",
-        "At 6": "Math: Q18, Q20, Q21 (Algebra/Add.) | R&W: Q4, Q9, Q13, Q18, Q20 (Std. Eng)",
-        "At 7": "Math: Q9, Q11, Q19, Q20 (Algebra/Add.) | R&W: Q1, Q3, Q11, Q13, Q20 (Std. Eng)",
-        "At 8": "Math: Q5, Q14, Q17, Q21 (Adv. Math/Add.) | R&W: Q1, Q4, Q5, Q11, Q16 (Ideas)"
+        "At 6": "Math: Q18, Q20, Q21 (Algebra/Additional) | R&W: Q4, Q9, Q13, Q18, Q20 (Std. Eng)",
+        "At 7": "Math: Q9, Q11, Q19, Q20 (Algebra/Additional) | R&W: Q1, Q3, Q11, Q13, Q20 (Std. Eng)",
+        "At 8": "Math: Q5, Q14, Q17, Q21 (Adv. Math/Additional) | R&W: Q1, Q4, Q5, Q11, Q16 (Ideas)"
     }
 }
 
-# --- 3. การตั้งค่าหน้าตาแอป & CSS ---
-st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
+# --- 3. การตั้งค่าหน้าตาแอป & CSS (Luxury Theme) ---
+st.set_page_config(page_title="aims SAT Premium Report", layout="wide")
 
 st.markdown("""
     <style>
-    .main { background-color: #f8fafc; }
-    .target-box { text-align: center; margin-top: 10px; margin-bottom: 30px; }
-    .target-label { font-size: 24px; color: #64748b; font-weight: 700; letter-spacing: 4px; }
-    .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap');
     
-    .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; }
-    .attempt-card { background-color: white; padding: 25px; border-radius: 20px; border: 1px solid #e2e8f0; }
-    .topic-box { background-color: white; padding: 12px 18px; border: 1px solid #f1f5f9; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .insight-box { background-color: #f0f9ff; padding: 25px; border-radius: 20px; border: 1px solid #e0f2fe; margin-top: 20px; }
-    .error-chip { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 10px 15px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-top: 10px; display: block; }
+    .main { background-color: #fcfdfe; }
+    
+    /* Center Header Branding */
+    .header-branding {
+        text-align: center;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 30px;
+        margin-bottom: 40px;
+    }
+    .header-branding p {
+        margin: 0;
+        font-size: 16px;
+        color: #002d56;
+        font-weight: 600;
+        line-height: 1.6;
+    }
+    
+    /* Target Score Styling */
+    .target-container { text-align: center; margin: 20px 0; }
+    .target-label { font-size: 26px; color: #64748b; font-weight: 600; letter-spacing: 5px; font-family: 'Poppins'; }
+    .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; font-family: 'Poppins'; }
+    
+    .stMetric { background-color: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .attempt-card { background-color: white; padding: 30px; border-radius: 25px; border: 1px solid #f1f5f9; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+    .topic-box { background-color: #ffffff; padding: 14px 20px; border-radius: 16px; border: 1px solid #f1f5f9; margin-bottom: 12px; display: flex; justify-content: space-between; }
+    .insight-card { background-color: #f0f9ff; padding: 30px; border-radius: 25px; border: 1px solid #e0f2fe; margin-top: 25px; }
+    .error-tag { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 12px 18px; border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.6; display: block; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. Header (Branding: aims Logo & Contact) ---
-h_left, h_right = st.columns([2.5, 1])
+# --- 4. แสดงผล Header Branding (Centered Letterhead) ---
+st.markdown("<div class='header-branding'>", unsafe_allow_html=True)
+# ตรวจสอบไฟล์โลโก้
+logo_filename = "aims_logo_2014_01_crop_blue_200x50px.png"
+if os.path.exists(logo_filename):
+    st.image(logo_filename, width=280)
+else:
+    st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=280)
 
-with h_right:
-    # --- หนูแก้ชื่อไฟล์ให้ตรงกับที่พี่มหาอัปโหลดเป๊ะๆ แล้วค่ะ! ---
-    logo_path = "aims_logo_2014_01_crop_blue_200x50px.png"
-    if os.path.exists(logo_path):
-        st.image(logo_path, width=220)
-    else:
-        st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=220)
-        
-    st.markdown("""
-        <div style='text-align: right; color: #002d56; font-size: 15px; font-weight: bold; line-height: 1.6; margin-top: 5px;'>
-            Siam Square: 02-254-9300-2<br>
-            <a href='https://www.aims.co.th' target='_blank' style='color: #002d56; text-decoration: none;'>www.aims.co.th</a><br>
-            Line ID: @aims2
-        </div>
-    """, unsafe_allow_html=True)
+st.markdown("""
+    <p>Siam Square: 02-254-9300-2</p>
+    <p><a href='https://www.aims.co.th' style='color: #002d56;'>www.aims.co.th</a> | Line ID: @aims2</p>
+    </div>
+""", unsafe_allow_html=True)
 
 # --- 5. ระบบ Dashboard ---
 st.sidebar.title("🔐 aims Portal")
@@ -102,55 +117,59 @@ if role == "Student" and df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        st.markdown(f"<h1 style='color: #002d56; margin-bottom: -10px;'>{student_name}</h1>", unsafe_allow_html=True)
+        # ส่วนเป้าหมายหลัก
         st.markdown(f"""
-            <div class="target-box">
+            <div class="target-container">
+                <div style="font-size: 32px; font-weight: 600; color: #002d56; margin-bottom: 10px;">{student_name}</div>
                 <div class="target-label">TARGET SCORE</div>
                 <div class="target-huge">{target_val}</div>
             </div>
         """, unsafe_allow_html=True)
 
-        c1, c2, c3 = st.columns(3)
-        with c1: st.metric("คะแนนครั้งที่เลือก", int(selected_attempt['Total Score']), f"At {c_idx+1}")
-        with c2: st.metric("คะแนนสูงสุด (Best)", int(best_score))
-        with c3:
+        # KPI Metrics
+        m1, m2, m3 = st.columns(3)
+        with m1: st.metric("Current Attempt Score", int(selected_attempt['Total Score']), f"At {c_idx+1}")
+        with m2: st.metric("Personal Best Score", int(best_score))
+        with m3:
             prog = int((best_score / target_val) * 100)
-            st.metric("Progress", f"{prog}%", f"ขาดอีก {target_val - int(best_score)}")
+            st.metric("Progress to Goal", f"{prog}%", f"Gap: {target_val - int(best_score)}")
             st.progress(prog/100)
 
         st.divider()
 
-        # --- 6. Layout กราฟ และรายละเอียด ---
-        left, right = st.columns([1.8, 1.2])
+        # --- 6. กราฟพรีเมียม (Blue & Hollow White) ---
+        left, right = st.columns([1.7, 1.3])
 
         with left:
-            st.subheader("📊 Score Trend (At 1 - At 8)")
+            st.subheader("📊 Performance Trend (At 1 - At 8)")
             fig = go.Figure()
             labels = [f"At {i+1}" for i in range(len(s_data))]
             
-            # Math: สีฟ้าทึบ
+            # Math: สีฟ้าเข้มพรีเมียม
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['Math Score'], name='Math', 
-                marker=dict(color='#002d56')
+                marker=dict(color='#002d56', line=dict(width=0))
             ))
-            # R&W: สีขาวขอบฟ้า (โปร่งใสข้างใน)
+            # R&W: แท่งโปร่งขอบน้ำเงิน (Hollow)
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
                 marker=dict(
-                    color='rgba(255, 255, 255, 1)', 
+                    color='rgba(255, 255, 255, 0)', 
                     line=dict(color='#002d56', width=3) 
                 )
             ))
             
             fig.update_layout(
                 barmode='group',
-                xaxis=dict(title="Attempts"),
-                yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 300, 400, 500, 600, 700, 800]),
-                height=500, margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)'
+                xaxis=dict(title="Attempts", showgrid=False),
+                yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 400, 600, 800], gridcolor='#f1f5f9'),
+                height=500, plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig, use_container_width=True, theme=None) 
+            st.plotly_chart(fig, use_container_width=True, theme=None)
             
-            st.write("🔍 คลิกเลือกครั้งที่ต้องการดูรายละเอียดด้านข้างค่ะ:")
+            # Selector Buttons
+            st.write("🔍 เจาะลึกข้อมูลครั้งที่สอบ:")
             btn_cols = st.columns(len(s_data))
             for i in range(len(s_data)):
                 if btn_cols[i].button(f"At {i+1}", key=f"btn_{i}", use_container_width=True, type="primary" if i == c_idx else "secondary"):
@@ -159,54 +178,51 @@ if role == "Student" and df is not None:
 
         with right:
             st.markdown("<div class='attempt-card'>", unsafe_allow_html=True)
-            st.subheader("📍 Attempt Detail")
-            st.markdown(f"🗓️ **วันที่สอบ:** {selected_attempt['Date']}")
+            st.subheader("📍 Attempt Details")
+            st.markdown(f"🗓️ **Date Taken:** {selected_attempt['Date']} | **Form:** {selected_attempt['Test Form']}")
             
             sc1, sc2 = st.columns(2)
             sc1.metric("Math Score", int(selected_attempt['Math Score']))
             sc2.metric("R&W Score", int(selected_attempt['R&W Score']))
             
-            tab_m, tab_r = st.tabs(["Math รายหัวข้อ", "R&W รายหัวข้อ"])
-            with tab_m:
-                m_t = {"Algebra": 'Math Algebra (%)', "Problem Solving": 'Math Problem Solving (%)', "Advanced Math": 'Math Advanced Math (%)', "Additional Topics": 'Math Additional Topics (%)'}
-                for k, v in m_t.items(): 
+            t_math, t_rw = st.tabs(["Math Topic Mastery", "R&W Topic Mastery"])
+            with t_math:
+                for k, v in {"Algebra": 'Math Algebra (%)', "Problem Solving": 'Math Problem Solving (%)', "Advanced Math": 'Math Advanced Math (%)', "Additional Topics": 'Math Additional Topics (%)'}.items():
                     if v in selected_attempt:
                         st.markdown(f"<div class='topic-box'><span>{k}</span><b>{int(selected_attempt[v])}%</b></div>", unsafe_allow_html=True)
-            with tab_r:
-                r_t = {"Craft & Structure": 'R&W Craft & Structure (%)', "Info & Ideas": 'R&W Info & Ideas (%)', "Standard English": 'R&W Standard English (%)', "Expression of Ideas": 'R&W Expression of Ideas (%)'}
-                for k, v in r_t.items():
+            with t_rw:
+                for k, v in {"Craft & Structure": 'R&W Craft & Structure (%)', "Info & Ideas": 'R&W Info & Ideas (%)', "Standard English": 'R&W Standard English (%)', "Expression of Ideas": 'R&W Expression of Ideas (%)'}.items():
                     if v in selected_attempt:
                         st.markdown(f"<div class='topic-box'><span>{k}</span><b>{int(selected_attempt[v])}%</b></div>", unsafe_allow_html=True)
 
-            # --- 7. ข้อแนะนำ (Smart Insight) ---
-            st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
-            st.markdown("<b style='color: #0369a1; font-size: 18px;'>📖 ข้อแนะนำการเรียนเพิ่มเติม</b>", unsafe_allow_html=True)
+            # --- 7. Smart Insight Card ---
+            st.markdown("<div class='insight-card'>", unsafe_allow_html=True)
+            st.markdown("<b style='color: #002d56; font-size: 19px;'>📝 Insight & Advice</b>", unsafe_allow_html=True)
             
-            all_topics = {}
-            for k, v in {**m_t, **r_t}.items():
-                if v in selected_attempt: all_topics[k] = selected_attempt[v]
+            all_t = {}
+            for k, v in {**{"Algebra": 'Math Algebra (%)', "Problem Solving": 'Math Problem Solving (%)', "Advanced Math": 'Math Advanced Math (%)', "Additional Topics": 'Math Additional Topics (%)'}, **{"Craft & Structure": 'R&W Craft & Structure (%)', "Info & Ideas": 'R&W Info & Ideas (%)', "Standard English": 'R&W Standard English (%)', "Expression of Ideas": 'R&W Expression of Ideas (%)'}}.items():
+                if v in selected_attempt: all_t[k] = selected_attempt[v]
             
-            if all_topics:
-                weak_t = min(all_topics, key=all_topics.get)
+            if all_t:
+                weak = min(all_t, key=all_t.get)
                 st.markdown(f"""
-                    <div style='font-size: 14px; color: #0c4a6e; line-height: 1.6; margin-top: 10px;'>
-                        หนูวิเคราะห์ข้อมูลในครั้งนี้ให้แล้วนะคะ จุดที่ต้องเร่งเสริมเป็นอันดับหนึ่งคือหัวข้อ <b>{weak_t}</b> ค่ะ 
-                        เนื่องจากทำคะแนนได้เพียง <b>{int(all_topics[weak_t])}%</b> เท่านั้น ซึ่งเป็นจุดสำคัญที่จะช่วยดึงคะแนนรวมให้สูงขึ้นได้ค่ะ <br><br>
-                        หนูแนะนำว่าควรให้เวลาทำโจทย์ในหัวข้อนี้เพิ่มขึ้นเป็นพิเศษอย่างน้อยวันละ 15-20 ข้อเพื่ออุดรอยรั่วค่ะ ส่วนในพาร์ทอื่นๆ 
-                        พยายามรักษาระดับความแม่นยำไว้ให้ดี โดยเฉพาะในกลุ่มที่ทำได้เกิน 80% แล้ว เพื่อให้คะแนนรวมพุ่งสู่เป้าหมาย <b>1500</b> ได้แน่นอนค่ะ สู้ๆ นะคะ หนูเป็นกำลังใจให้ค่ะ!
+                    <div style='font-size: 15px; color: #1e293b; line-height: 1.7; margin: 15px 0;'>
+                        หนูวิเคราะห์แล้วนะคะ จุดที่ต้องเร่งเสริมเพื่อให้ถึง 1500 คือหัวข้อ <b>{weak}</b> ค่ะ 
+                        ซึ่งได้เพียง <b>{int(all_t[weak])}%</b> ในรอบนี้ หนูแนะนำให้พี่เน้นให้น้องทำโจทย์หัวข้อนี้เพิ่มขึ้น 
+                        พร้อมทั้งเก็บความแม่นยำในส่วนที่ทำได้ดีอยู่แล้วนะคะ หนูเป็นกำลังใจให้ค่ะ!
                     </div>
                 """, unsafe_allow_html=True)
             
-            st.markdown("<hr style='border: 0.5px solid #e0f2fe;'>", unsafe_allow_html=True)
-            st.markdown("<b style='color: #0369a1;'>📝 Incorrect Questions Analysis</b>", unsafe_allow_html=True)
-            
+            st.markdown("<b style='color: #002d56;'>Incorrect Questions Analysis:</b>", unsafe_allow_html=True)
             at_key = f"At {c_idx+1}"
-            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "ไม่มีข้อมูลข้อที่ผิดสำหรับรอบนี้ค่ะ")
-            st.markdown(f"<div class='error-chip'>{incorrect_info}</div>", unsafe_allow_html=True)
+            inc_info = incorrect_mapping.get(student_name, {}).get(at_key, "หนูกำลังอัปเดตข้อมูล PDF ให้อยู่นะคะ")
+            st.markdown(f"<div class='error-tag'>{inc_info}</div>", unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
 elif role == "Admin":
-    st.title("⚙️ aims Admin Control")
+    st.title("⚙️ Admin Console")
     st.dataframe(df, use_container_width=True)
+
+st.markdown("<br><center style='color: #94a3b8; font-size: 11px;'>aims SAT Professional Dashboard • Data Insights powered by aims school</center>", unsafe_allow_html=True)
