@@ -19,22 +19,21 @@ def load_data():
 
 df = load_data()
 
-# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) สกัดจาก PDF ---
-# หนูแก้ข้อมูลส่วนนี้ให้หายเพี้ยนและระบุหัวข้อชัดเจนตามจริงค่ะ
-detailed_incorrect_mapping = {
+# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) สกัดจาก PDF ของน้องๆ ค่ะ ---
+incorrect_mapping = {
     "Aphiphongphiphut Kaweeyarn": {
-        "At 1": "Math: Q12 (Adv. Math), Q16 (Adv. Math), Q17 (Additional), Q21 (Adv. Math) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
+        "At 1": "Math: Q12, Q16, Q17, Q21 (Advanced Math/Additional) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
         "At 2": "Math: Q1, Q6, Q14, Q16, Q17, Q18, Q20 (Algebra) | R&W: Q3, Q10, Q11, Q15, Q16 (Ideas)",
-        "At 3": "Math: Q10, Q14, Q16, Q18, Q19 (Algebra/Additional) | R&W: Q3, Q6, Q10, Q13, Q15 (Craft/Ideas)",
-        "At 4": "Math: Q1, Q9, Q10, Q13 (Algebra/Problem Solving) | R&W: Q1, Q14, Q19, Q21 (Std. Eng)",
-        "At 5": "Math: Q4, Q15, Q19, Q20 (Algebra/Additional) | R&W: Q3, Q9, Q11, Q14, Q15 (Ideas)",
-        "At 6": "Math: Q5, Q8, Q11, Q12, Q14 (Algebra) | R&W: Q1, Q3, Q4, Q7, Q11 (Craft)",
+        "At 3": "Math: Q4, Q15, Q19, Q20 (Algebra/Additional) | R&W: Q3, Q9, Q11, Q14, Q15 (Ideas)",
+        "At 4": "Math: Q1, Q10, Q13, Q14 (Algebra/Problem Solving) | R&W: Q1, Q3, Q4, Q7, Q11, Q14 (Craft)",
+        "At 5": "Math: Q1, Q9, Q10, Q13 (Algebra/Problem Solving) | R&W: Q1, Q14, Q19, Q21 (Std. Eng)",
+        "At 6": "Math: Q14, Q18, Q20 (Adv. Math) | R&W: Q1, Q3, Q4, Q11, Q15 (Craft)",
         "At 7": "Math: Q3, Q9, Q13, Q17 (Adv. Math/Algebra) | R&W: Q1, Q3, Q11, Q13, Q15 (Ideas)",
         "At 8": "Math: Q7, Q14, Q18, Q20 (Adv. Math/Problem Solving) | R&W: Q1, Q3, Q4, Q11, Q15 (Craft/Ideas)"
     },
     "Pharin Chantapakul": {
         "At 1": "Math: Q1, Q7, Q13, Q20, Q22 (Algebra/Additional) | R&W: Q4, Q6, Q13, Q15, Q17 (Ideas)",
-        "At 2": "Math: Q3, Q4, Q10, Q13 (Adv. Math/Problem Solving) | R&W: Q2, Q11, Q13, Q17, Q20 (Std. Eng)",
+        "At 2": "Math: Q3, Q4, Q10, Q13 (Advanced Math/Problem Solving) | R&W: Q2, Q11, Q13, Q17, Q20 (Std. Eng)",
         "At 3": "Math: Q4, Q7, Q10, Q13, Q17 (Algebra) | R&W: Q1, Q3, Q7, Q10, Q14 (Craft)",
         "At 4": "Math: Q1, Q10, Q14, Q15 (Problem Solving/Adv. Math) | R&W: Q1, Q4, Q9, Q12, Q16 (Ideas)",
         "At 5": "Math: Q15, Q16, Q18, Q22 (Algebra) | R&W: Q3, Q5, Q9, Q14, Q17 (Craft)",
@@ -51,33 +50,33 @@ st.markdown("""
     <style>
     .main { background-color: #f8fafc; }
     /* Target Score Section */
-    .target-container { text-align: center; margin-bottom: 20px; }
-    .target-label { font-size: 22px; color: #64748b; font-weight: 700; letter-spacing: 3px; }
-    .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 10px 0; }
+    .target-container { text-align: center; margin-top: 10px; margin-bottom: 20px; }
+    .target-label { font-size: 24px; color: #64748b; font-weight: 700; letter-spacing: 3px; }
+    .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
     
     .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #e0f2fe; }
     .attempt-card { background-color: white; padding: 25px; border-radius: 20px; border: 1px solid #e2e8f0; }
     .topic-box { background-color: white; padding: 12px 18px; border: 1px solid #f1f5f9; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     .insight-box { background-color: #f0f9ff; padding: 25px; border-radius: 20px; border: 1px solid #e0f2fe; margin-top: 20px; }
-    .error-chip { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 12px 15px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-top: 12px; display: block; }
+    .error-chip { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 10px 15px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-top: 10px; display: block; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. Header (aims Branding & Logo) ---
+# --- 4. Header (aims Logo & Contact Info) ---
 h_left, h_right = st.columns([1.5, 1])
 
 with h_right:
-    # แสดงโลโก้และข้อมูลติดต่อสถาบัน
+    # โลโก้ และ ข้อมูลติดต่อที่มุมขวาบนตามสั่งค่ะ
     st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=220)
     st.markdown("""
-        <div style='text-align: right; color: #002d56; font-size: 15px; font-weight: bold; line-height: 1.5; margin-top: -15px;'>
+        <div style='text-align: right; color: #002d56; font-size: 15px; font-weight: bold; line-height: 1.6; margin-top: -10px;'>
             Siam Square: 02-254-9300-2<br>
             <a href='https://www.aims.co.th' target='_blank' style='color: #002d56; text-decoration: none;'>www.aims.co.th</a><br>
             Line ID: @aims2
         </div>
     """, unsafe_allow_html=True)
 
-# --- 5. ระบบ Dashboard ---
+# --- 5. ระบบ Sidebar ---
 st.sidebar.title("🔐 aims Portal")
 role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Admin"])
 
@@ -89,6 +88,7 @@ if role == "Student" and df is not None:
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
     if not s_data.empty:
+        # บังคับเป้าหมาย 1500 คะแนนเท่ากันทุกคนค่ะ
         target_val = 1500
         if "active_student" not in st.session_state or st.session_state.active_student != student_name:
             st.session_state.active_student = student_name
@@ -96,9 +96,9 @@ if role == "Student" and df is not None:
 
         c_idx = min(st.session_state.selected_idx, len(s_data) - 1)
         selected_attempt = s_data.iloc[c_idx]
-        best_score = s_data['Total Score'].max()
+        best_of_all = s_data['Total Score'].max()
 
-        # แสดงชื่อนักเรียนและ Target Score ใหญ่ยักษ์
+        # ส่วนหัว: ชื่อนักเรียน และเป้าหมาย 1500 ตัวใหญ่ยักษ์
         st.markdown(f"<h1 style='color: #002d56; margin-bottom: -10px;'>{student_name}</h1>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-container">
@@ -107,18 +107,18 @@ if role == "Student" and df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-        # Metrics
+        # KPI Metrics
         c1, c2, c3 = st.columns(3)
         with c1: st.metric("คะแนนครั้งที่เลือก", int(selected_attempt['Total Score']), f"At {c_idx+1}")
-        with c2: st.metric("คะแนนสูงสุด (Best)", int(best_score))
+        with c2: st.metric("คะแนนสูงสุด (Best)", int(best_of_all))
         with c3:
-            prog = int((best_score / target_val) * 100)
-            st.metric("Progress", f"{prog}%", f"ขาดอีก {target_val - int(best_score)}")
+            prog = int((best_of_all / target_val) * 100)
+            st.metric("Progress", f"{prog}%", f"ขาดอีก {target_val - int(best_of_all)} คะแนน")
             st.progress(prog/100)
 
         st.divider()
 
-        # --- 6. Layout กราฟ Blue & White และรายละเอียด ---
+        # --- 6. Layout กราฟ (Blue & White) และรายละเอียด ---
         left, right = st.columns([1.8, 1.2])
 
         with left:
@@ -127,10 +127,18 @@ if role == "Student" and df is not None:
             labels = [f"At {i+1}" for i in range(len(s_data))]
             
             # Math: สีฟ้าทึบ (aims Blue)
-            fig.add_trace(go.Bar(x=labels, y=s_data['Math Score'], name='Math', marker_color='#002d56'))
-            # R&W: สีขาวขอบฟ้า
-            fig.add_trace(go.Bar(x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
-                                 marker_color='white', marker_line_color='#002d56', marker_line_width=3))
+            fig.add_trace(go.Bar(
+                x=labels, y=s_data['Math Score'], name='Math', 
+                marker=dict(color='#002d56')
+            ))
+            # R&W: สีขาวขอบฟ้า (Hollow Style)
+            fig.add_trace(go.Bar(
+                x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
+                marker=dict(
+                    color='white', # พื้นสีขาว
+                    line=dict(color='#002d56', width=3) # ขอบสีฟ้าทึบ
+                )
+            ))
             
             fig.update_layout(
                 barmode='group',
@@ -140,7 +148,7 @@ if role == "Student" and df is not None:
             )
             st.plotly_chart(fig, use_container_width=True)
             
-            st.write("🔍 เลือกครั้งที่ต้องการดูรายละเอียดด้านข้าง:")
+            st.write("🔍 คลิกเลือกครั้งที่ต้องการเจาะลึกข้อมูลด้านข้างค่ะ:")
             btn_cols = st.columns(len(s_data))
             for i in range(len(s_data)):
                 if btn_cols[i].button(f"At {i+1}", key=f"btn_{i}", use_container_width=True, type="primary" if i == c_idx else "secondary"):
@@ -150,7 +158,7 @@ if role == "Student" and df is not None:
         with right:
             st.markdown("<div class='attempt-card'>", unsafe_allow_html=True)
             st.subheader("📍 Attempt Detail")
-            # แสดงวันที่สอบ
+            # แสดงวันที่สอบชัดเจนค่ะ
             st.markdown(f"🗓️ **วันที่สอบ:** {selected_attempt['Date']}")
             
             sc1, sc2 = st.columns(2)
@@ -169,7 +177,7 @@ if role == "Student" and df is not None:
                     if v in selected_attempt:
                         st.markdown(f"<div class='topic-box'><span>{k}</span><b>{int(selected_attempt[v])}%</b></div>", unsafe_allow_html=True)
 
-            # --- 7. ข้อเสนอแนะการเรียนเพิ่มเติม (วิเคราะห์เจาะลึก) ---
+            # --- 7. ข้อแนะนำ (Smart Insight) เจาะลึกยาวๆ ค่ะ ---
             st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
             st.markdown("<b style='color: #0369a1; font-size: 18px;'>📖 ข้อแนะนำการเรียนเพิ่มเติม</b>", unsafe_allow_html=True)
             
@@ -181,17 +189,19 @@ if role == "Student" and df is not None:
                 weak_t = min(all_topics, key=all_topics.get)
                 st.markdown(f"""
                     <div style='font-size: 14px; color: #0c4a6e; line-height: 1.6; margin-top: 10px;'>
-                        หนูวิเคราะห์แล้วนะคะ ครั้งนี้น้องทำคะแนนในหัวข้อ <b>{weak_t}</b> ได้น้อยที่สุดเพียง <b>{int(all_topics[weak_t])}%</b> เท่านั้นค่ะ <br><br>
-                        แนะนำให้เน้นฝึกโจทย์หัวข้อนี้เพิ่มขึ้นเป็นพิเศษเพื่ออุดรอยรั่วค่ะ ส่วนพาร์ทอื่นๆ อย่าลืมรักษาระดับความแม่นยำไว้ให้ดีนะคะ เพื่อให้คะแนนพุ่งสู่เป้าหมาย <b>1500</b> ได้แน่นอนค่ะ สู้ๆ นะคะ!
+                        หนูวิเคราะห์ข้อมูลในครั้งนี้ให้แล้วนะคะ จุดที่ต้องเร่งเสริมเป็นอันดับหนึ่งคือหัวข้อ <b>{weak_t}</b> ค่ะ 
+                        เนื่องจากทำคะแนนได้เพียง <b>{int(all_topics[weak_t])}%</b> เท่านั้น ซึ่งเป็นจุดสำคัญที่จะช่วยดึงคะแนนรวมให้สูงขึ้นได้ค่ะ <br><br>
+                        หนูแนะนำว่าควรให้เวลาทำโจทย์ในหัวข้อนี้เพิ่มขึ้นเป็นพิเศษอย่างน้อยวันละ 15-20 ข้อเพื่ออุดรอยรั่วค่ะ ส่วนในพาร์ทอื่นๆ 
+                        พยายามรักษาระดับความแม่นยำไว้ให้ดี โดยเฉพาะในกลุ่มที่ทำได้เกิน 80% แล้ว เพื่อให้คะแนนรวมพุ่งสู่เป้าหมาย <b>1500</b> ได้แน่นอนค่ะ สู้ๆ นะคะ หนูเป็นกำลังใจให้ค่ะ!
                     </div>
                 """, unsafe_allow_html=True)
             
             st.markdown("<hr style='border: 0.5px solid #e0f2fe;'>", unsafe_allow_html=True)
             st.markdown("<b style='color: #0369a1;'>📝 Incorrect Questions Analysis</b>", unsafe_allow_html=True)
             
-            # ดึงข้อมูลจาก Mapping At 1-8 ที่หายเพี้ยนแล้วค่ะ
+            # ดึงข้อมูลข้อที่ผิด At 1-8 ที่หายเพี้ยนแล้วค่ะ
             at_key = f"At {c_idx+1}"
-            incorrect_info = detailed_incorrect_mapping.get(student_name, {}).get(at_key, "ข้อมูลกำลังปรับปรุงค่ะ")
+            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "หนูกำลังดึงข้อมูลข้อที่ผิดมาให้นะคะ")
             st.markdown(f"<div class='error-chip'>{incorrect_info}</div>", unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
