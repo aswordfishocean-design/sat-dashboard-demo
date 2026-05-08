@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import os
+import base64
 
 # --- 1. การเชื่อมต่อข้อมูล ---
 sheet_id = "1ZqScd-XtnaR6zTITejMVIbpIW-MAXa2YphOu6PXaCiI" 
@@ -20,7 +21,7 @@ def load_data():
 
 df = load_data()
 
-# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) สกัดจาก PDF ---
+# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) ---
 incorrect_mapping = {
     "Aphiphongphiphut Kaweeyarn": {
         "At 1": "Math: Q12, Q16, Q17, Q21 (Advanced Math/Additional) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
@@ -52,8 +53,8 @@ st.markdown("""
     .main { background-color: #fcfdfe; }
     
     /* Target Score & Student Name Section */
-    .student-name-title { text-align: center; color: #002d56; font-size: 48px; font-weight: 900; margin-top: 30px; margin-bottom: 5px; }
-    .target-container { text-align: center; margin-top: 0px; margin-bottom: 30px; }
+    .student-name-title { text-align: center; color: #002d56; font-size: 50px; font-weight: 900; margin-top: 20px; margin-bottom: 5px; }
+    .target-container { text-align: center; margin-top: 0px; margin-bottom: 40px; }
     .target-label { font-size: 24px; color: #64748b; font-weight: 700; letter-spacing: 5px; }
     .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
     
@@ -62,16 +63,6 @@ st.markdown("""
     .topic-box { background-color: #ffffff; padding: 12px 18px; border-radius: 15px; border: 1px solid #f1f5f9; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     .insight-box { background-color: #f0f9ff; padding: 25px; border-radius: 20px; border: 1px solid #e0f2fe; margin-top: 20px; }
     .error-chip { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 12px 15px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-top: 10px; display: block; }
-    
-    /* Contact Styling */
-    .contact-info {
-        text-align: right; 
-        color: #002d56; 
-        font-size: 14px; 
-        font-weight: bold; 
-        line-height: 1.2; 
-        margin-top: 5px;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -80,8 +71,10 @@ st.sidebar.title("🔐 aims Portal")
 role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Admin"])
 
 if role == "Student" and df is not None:
-    # --- แถวบนสุด (Top Row): Selectbox ซ้าย, โลโก้ ขวา ---
-    top_left, top_right = st.columns([1, 1])
+    # ---------------------------------------------------------
+    # LAYOUT แถวบนสุด: ซ้าย=เลือกนักเรียน | ขวา=โลโก้ชิดขวา
+    # ---------------------------------------------------------
+    top_left, top_space, top_right = st.columns([1.2, 1, 1.2])
     
     with top_left:
         student_list = sorted(df['Student Name'].unique())
@@ -89,21 +82,24 @@ if role == "Student" and df is not None:
         student_name = st.selectbox("เลือกนักเรียนที่ต้องการดูข้อมูล:", student_list, on_change=reset_idx)
         
     with top_right:
-        st.markdown("<div style='display: flex; flex-direction: column; align-items: flex-end;'>", unsafe_allow_html=True)
-        # เช็กรูปโลโก้
-        logo_filename = "aims_logo_2014_01_crop_blue_200x50px.png"
-        if os.path.exists(logo_filename):
-            st.image(logo_filename, width=240)
+        # เทคนิคแปลงรูปเป็น Base64 เพื่อให้ล็อกชิดขวาได้ 100% ค่ะ
+        logo_path = "aims_logo_2014_01_crop_blue_200x50px.png"
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as img_file:
+                logo_b64 = base64.b64encode(img_file.read()).decode()
+            img_html = f'<img src="data:image/png;base64,{logo_b64}" width="220">'
         else:
-            st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=240)
-        
-        st.markdown(f"""
-            <div class="contact-info">
-                Siam Square: 02-254-9300-2<br>
-                www.aims.co.th | Line ID: @aims2
+            img_html = '<img src="https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png" width="220">'
+            
+        st.markdown(f'''
+            <div style='text-align: right;'>
+                {img_html}
+                <div style='color: #002d56; font-size: 14px; font-weight: bold; line-height: 1.2; margin-top: 5px;'>
+                    Siam Square: 02-254-9300-2<br>
+                    www.aims.co.th | Line ID: @aims2
+                </div>
             </div>
-            </div>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
 
     # --- ดึงข้อมูลนักเรียน ---
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
@@ -118,7 +114,9 @@ if role == "Student" and df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        # --- แถวกลาง (Center Row): ชื่อนักเรียน และ Target 1500 ตรงกลางจอ ---
+        # ---------------------------------------------------------
+        # LAYOUT แถวกลาง: ชื่อนักเรียน และ 1500 อยู่ตรงกลางเป๊ะๆ
+        # ---------------------------------------------------------
         st.markdown(f"<div class='student-name-title'>{student_name}</div>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-container">
@@ -146,28 +144,30 @@ if role == "Student" and df is not None:
             fig = go.Figure()
             labels = [f"At {i+1}" for i in range(len(s_data))]
             
-            # Math: สีฟ้าทึบ (Solid Blue)
+            # Math: สีฟ้าทึบ (Solid Blue) #002d56
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['Math Score'], name='Math', 
-                marker=dict(color='#002d56')
+                marker_color='#002d56'
             ))
-            # R&W: แท่งสีขาวขอบฟ้า (Hollow White)
+            # R&W: สีขาวขอบฟ้า (Solid White with Blue Border) #ffffff
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
                 marker=dict(
-                    color='rgba(255, 255, 255, 1)', # ขาวทึบ
-                    line=dict(color='#002d56', width=3) # ขอบสีน้ำเงิน aims
+                    color='#ffffff', 
+                    line=dict(color='#002d56', width=2) 
                 )
             ))
             
             fig.update_layout(
                 barmode='group',
+                plot_bgcolor='#ffffff', # บังคับพื้นหลังกราฟเป็นสีขาว
+                paper_bgcolor='#ffffff',
                 xaxis=dict(title="Attempts"),
                 yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 400, 600, 800], gridcolor='#f1f5f9'),
-                height=500, plot_bgcolor='rgba(0,0,0,0)',
+                height=500,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            # บังคับ theme=None เพื่อให้สีกราฟไม่เพี้ยนค่ะ
+            # บังคับ theme=None เด็ดขาด เพื่อไม่ให้ Streamlit ดึงสีมั่วค่ะ!
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
             # ปุ่มเลือกดู Attempt
