@@ -25,7 +25,7 @@ st.markdown("""
     .main { background-color: #f8fafc; }
     .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
     .attempt-card { background-color: white; padding: 25px; border-radius: 20px; border: 1px solid #e2e8f0; }
-    .topic-box { background-color: white; padding: 12px 18px; border: 1px solid #e2e8f0; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .topic-box { background-color: white; padding: 12px 18px; border: 1px solid #e2e8f0; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     .insight-box { background-color: #f0f9ff; padding: 20px; border-radius: 20px; border: 1px solid #e0f2fe; margin-top: 15px; }
     .difficulty-tag { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
     .easy { background-color: #dcfce7; color: #166534; }
@@ -41,14 +41,13 @@ role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", 
 if role == "Student" and df is not None:
     student_list = sorted(df['Student Name'].unique())
     
-    # ระบบรีเซ็ตเมื่อเปลี่ยนชื่อนักเรียน
     def reset_idx(): st.session_state.selected_idx = 0
     student_name = st.sidebar.selectbox("เลือกชื่อนักเรียน:", student_list, on_change=reset_idx)
     
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
     if not s_data.empty:
-        # บังคับเป้าหมาย 1500 คะแนน
+        # บังคับเป้าหมาย 1500 คะแนนเท่ากันทุกคน
         target = 1500
         
         if "active_student" not in st.session_state or st.session_state.active_student != student_name:
@@ -81,18 +80,19 @@ if role == "Student" and df is not None:
         with left:
             st.subheader("📊 Score Trend")
             fig = go.Figure()
-            labels = [f"Attempt {i+1}" for i in range(len(s_data))]
+            # ปรับชื่อแกน X เป็น Attempt 1, 2, 3...
+            labels = [f"At {i+1}" for i in range(len(s_data))]
             
             # Math Bar (สีฟ้าทึบ)
-            fig.add_trace(go.Bar(y=labels, x=s_data['Math Score'], name='Math', orientation='h', marker_color='#0284c7', width=0.4))
+            fig.add_trace(go.Bar(x=labels, y=s_data['Math Score'], name='Math', marker_color='#0284c7'))
             # R&W Bar (สีขาวขอบฟ้า)
-            fig.add_trace(go.Bar(y=labels, x=s_data['R&W Score'], name='Reading & Writing', orientation='h', marker_color='rgba(0,0,0,0)', marker_line_color='#0284c7', marker_line_width=2, width=0.4))
+            fig.add_trace(go.Bar(x=labels, y=s_data['R&W Score'], name='Reading & Writing', marker_color='rgba(0,0,0,0)', marker_line_color='#0284c7', marker_line_width=2))
             
-            # ปรับแกนตามคำขอ: X = คะแนน (200-800), Y = Attempt
+            # ปรับแต่งแกน: X = ครั้งที่สอบ, Y = คะแนน (200-800)
             fig.update_layout(
                 barmode='group',
-                xaxis=dict(title="Score", tickvals=[200, 300, 400, 500, 600, 700, 800], range=[200, 800], gridcolor='#f1f5f9'),
-                yaxis=dict(title="Attempts", autorange="reversed"),
+                xaxis=dict(title="ครั้งที่สอบ (Attempts)"),
+                yaxis=dict(title="คะแนนสอบ (Score)", tickvals=[200, 300, 400, 500, 600, 700, 800], range=[200, 800], gridcolor='#f1f5f9'),
                 height=500, margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)'
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -123,25 +123,24 @@ if role == "Student" and df is not None:
             st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
             st.markdown("<b style='color: #0369a1; font-size: 16px;'>👩‍🏫 Smart Insight (โดยน้องใจดี)</b>", unsafe_allow_html=True)
             
-            # คำนวณหาหัวข้อที่อ่อนที่สุด
+            # คำนวณหาหัวข้อที่ควรเน้น (คะแนนต่ำที่สุด)
             all_scores = {**{k: selected_attempt[v] for k, v in m_topics.items()}, **{k: selected_attempt[v] for k, v in r_topics.items()}}
             weakest = min(all_scores, key=all_scores.get)
             
             st.markdown(f"""
                 <p style='font-size: 13px; color: #0c4a6e; margin-top: 10px;'>
-                พี่สาวคะ ครั้งนี้น้องทำคะแนนในหัวข้อ <b>{weakest}</b> ได้น้อยที่สุดเพียง <b>{int(all_scores[weakest])}%</b> 
-                แนะนำให้พี่สาวเริ่มสอนเสริมจากหัวข้อนี้ก่อนเลยนะคะ เพื่ออุดรอยรั่วให้คะแนนพุ่งสู่ 1500 ค่ะ!
+                พี่สาวคะ ครั้งนี้น้องมีจุดที่ต้องเร่งเสริมด่วนในหัวข้อ <b>{weakest}</b> ค่ะ เพราะได้คะแนนเพียง <b>{int(all_scores[weakest])}%</b> เท่านั้น 
+                แนะนำให้พี่สาวเน้นสอนหัวข้อนี้ก่อนนะคะ เพื่อเพิ่มโอกาสพุ่งสู่ 1500 ค่ะ!
             </p>
             <hr style='border: 0.5px solid #e0f2fe;'>
             <p style='font-size: 13px; color: #0c4a6e; font-weight: bold;'>📝 Incorrect Questions Analysis:</p>
             """, unsafe_allow_html=True)
             
-            # ตารางวิเคราะห์ข้อที่ผิด (จำลองข้อมูลเจาะลึก)
-            # ในอนาคตสามารถดึงจาก Google Sheet ได้โดยตรงค่ะ
+            # จำลองข้อมูลข้อที่ผิด (สามารถดึงจากฐานข้อมูลจริงได้ในอนาคต)
             error_data = [
-                {"q": "Q14", "topic": "Algebra", "diff": "Hard", "class": "hard"},
-                {"q": "Q19", "topic": "Expression of Ideas", "diff": "Medium", "class": "medium"},
-                {"q": "Q22", "topic": "Advanced Math", "diff": "Hard", "class": "hard"},
+                {"q": "Q12", "topic": "Algebra", "diff": "Hard", "class": "hard"},
+                {"q": "Q19", "topic": "Info & Ideas", "diff": "Medium", "class": "medium"},
+                {"q": "Q22", "topic": "Additional Topics", "diff": "Hard", "class": "hard"},
                 {"q": "Q05", "topic": "Standard English", "diff": "Easy", "class": "easy"}
             ]
             
@@ -158,7 +157,7 @@ if role == "Student" and df is not None:
 
 # --- หน้า Admin ---
 elif role == "Admin":
-    st.title("⚙️ Admin Database Control")
+    st.title("⚙️ aims Admin Database Control")
     st.dataframe(df, use_container_width=True)
 
 st.markdown("<br><center style='color: #94a3b8; font-size: 11px;'>aims SAT Dashboard • Sister & Student Edition</center>", unsafe_allow_html=True)
