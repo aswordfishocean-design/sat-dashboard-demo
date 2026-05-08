@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import os
 
 # --- 1. การเชื่อมต่อข้อมูล (V3) ---
 sheet_id = "1ZqScd-XtnaR6zTITejMVIbpIW-MAXa2YphOu6PXaCiI" 
@@ -10,7 +11,7 @@ url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 def load_data():
     try:
         data = pd.read_csv(url)
-        data.columns = data.columns.str.strip() # ล้างชื่อคอลัมน์กัน Error ค่ะ
+        data.columns = data.columns.str.strip() 
         data['Date'] = pd.to_datetime(data['Date']).dt.date
         return data
     except Exception as e:
@@ -19,7 +20,7 @@ def load_data():
 
 df = load_data()
 
-# --- 2. ฐานข้อมูล Incorrect Questions (At 1 - At 8) สกัดจาก PDF จริงค่ะ ---
+# --- 2. ฐานข้อมูล Incorrect Questions (At 1 - At 8) ---
 incorrect_mapping = {
     "Aphiphongphiphut Kaweeyarn": {
         "At 1": "Math: Q12, Q16, Q17, Q21 (Adv. Math/Add.) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
@@ -65,12 +66,12 @@ st.markdown("""
 h_left, h_right = st.columns([2.5, 1])
 
 with h_right:
-    # --- จุดแก้โลโก้ค่ะ! โหลดจากไฟล์ภาพโดยตรง ---
-    try:
-        # พี่มหาต้องเอาไฟล์ aims_logo_2014_01.jpg ใส่ใน GitHub ด้วยนะคะ
-        st.image("aims_logo_2014_01.jpg", width=220)
-    except:
-        st.warning("หนูหาไฟล์รูป 'aims_logo_2014_01.jpg' ไม่เจอค่ะ รบกวนพี่มหาอัปโหลดขึ้น GitHub ด้วยนะคะ")
+    # --- หนูแก้ชื่อไฟล์ให้ตรงกับที่พี่มหาอัปโหลดเป๊ะๆ แล้วค่ะ! ---
+    logo_path = "aims_logo_2014_01_crop_blue_200x50px.png"
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=220)
+    else:
+        st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=220)
         
     st.markdown("""
         <div style='text-align: right; color: #002d56; font-size: 15px; font-weight: bold; line-height: 1.6; margin-top: 5px;'>
@@ -147,7 +148,6 @@ if role == "Student" and df is not None:
                 yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 300, 400, 500, 600, 700, 800]),
                 height=500, margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)'
             )
-            # --- จุดแก้สีกราฟค่ะ! บังคับ theme=None เพื่อให้ Streamlit ไม่เอาสีมาทับ ---
             st.plotly_chart(fig, use_container_width=True, theme=None) 
             
             st.write("🔍 คลิกเลือกครั้งที่ต้องการดูรายละเอียดด้านข้างค่ะ:")
