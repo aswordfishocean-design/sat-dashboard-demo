@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
-# --- 1. การเชื่อมต่อข้อมูล (V3) ---
+# --- 1. การเชื่อมต่อข้อมูล ---
 sheet_id = "1ZqScd-XtnaR6zTITejMVIbpIW-MAXa2YphOu6PXaCiI" 
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
@@ -20,10 +20,10 @@ def load_data():
 
 df = load_data()
 
-# --- 2. ฐานข้อมูล Incorrect Questions (At 1 - At 8) สกัดจาก PDF จริงค่ะ ---
+# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) สกัดจาก PDF ---
 incorrect_mapping = {
     "Aphiphongphiphut Kaweeyarn": {
-        "At 1": "Math: Q12, Q16, Q17, Q21 (Adv. Math/Add.) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
+        "At 1": "Math: Q12, Q16, Q17, Q21 (Advanced Math/Additional) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
         "At 2": "Math: Q1, Q6, Q14, Q16, Q17, Q18, Q20 (Algebra) | R&W: Q3, Q10, Q11, Q15, Q16 (Ideas)",
         "At 3": "Math: Q4, Q15, Q19, Q20 (Algebra/Additional) | R&W: Q3, Q9, Q11, Q14, Q15 (Ideas)",
         "At 4": "Math: Q1, Q10, Q13, Q14 (Algebra/Problem Solving) | R&W: Q1, Q3, Q4, Q7, Q11, Q14 (Craft)",
@@ -44,15 +44,16 @@ incorrect_mapping = {
     }
 }
 
-# --- 3. การตั้งค่าหน้าตาแอป & CSS (Professional Luxury Theme) ---
+# --- 3. การตั้งค่าหน้าตาแอป & CSS ---
 st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
 
 st.markdown("""
     <style>
     .main { background-color: #fcfdfe; }
     
-    /* Target Score Section */
-    .target-container { text-align: center; margin-top: -20px; }
+    /* Target Score & Student Name Section */
+    .student-name-title { text-align: center; color: #002d56; font-size: 48px; font-weight: 900; margin-top: 30px; margin-bottom: 5px; }
+    .target-container { text-align: center; margin-top: 0px; margin-bottom: 30px; }
     .target-label { font-size: 24px; color: #64748b; font-weight: 700; letter-spacing: 5px; }
     .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
     
@@ -62,46 +63,49 @@ st.markdown("""
     .insight-box { background-color: #f0f9ff; padding: 25px; border-radius: 20px; border: 1px solid #e0f2fe; margin-top: 20px; }
     .error-chip { background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; padding: 12px 15px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-top: 10px; display: block; }
     
-    /* Contact Styling (Tight line spacing) */
+    /* Contact Styling */
     .contact-info {
         text-align: right; 
         color: #002d56; 
-        font-size: 15px; 
+        font-size: 14px; 
         font-weight: bold; 
-        line-height: 1.1; /* บรรทัดชิดกันตามสั่งค่ะ */
+        line-height: 1.2; 
         margin-top: 5px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. Top Section: Student Name & Branding (Logo on Right) ---
-top_left, top_right = st.columns([2, 1])
+# --- 4. ระบบ Sidebar ---
+st.sidebar.title("🔐 aims Portal")
+role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Admin"])
 
-with top_left:
-    # ชื่อนักเรียนอยู่ฝั่งซ้ายของโลโก้ค่ะ
-    if df is not None:
+if role == "Student" and df is not None:
+    # --- แถวบนสุด (Top Row): Selectbox ซ้าย, โลโก้ ขวา ---
+    top_left, top_right = st.columns([1, 1])
+    
+    with top_left:
         student_list = sorted(df['Student Name'].unique())
         def reset_idx(): st.session_state.selected_idx = 0
         student_name = st.selectbox("เลือกนักเรียนที่ต้องการดูข้อมูล:", student_list, on_change=reset_idx)
-        st.markdown(f"<h1 style='color: #002d56; font-size: 42px; margin-top: 10px;'>{student_name}</h1>", unsafe_allow_html=True)
+        
+    with top_right:
+        st.markdown("<div style='display: flex; flex-direction: column; align-items: flex-end;'>", unsafe_allow_html=True)
+        # เช็กรูปโลโก้
+        logo_filename = "aims_logo_2014_01_crop_blue_200x50px.png"
+        if os.path.exists(logo_filename):
+            st.image(logo_filename, width=240)
+        else:
+            st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=240)
+        
+        st.markdown(f"""
+            <div class="contact-info">
+                Siam Square: 02-254-9300-2<br>
+                www.aims.co.th | Line ID: @aims2
+            </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-with top_right:
-    # โลโก้และข้อมูลติดต่อชิดกันมุมขวาบนค่ะ
-    logo_filename = "aims_logo_2014_01_crop_blue_200x50px.png"
-    if os.path.exists(logo_filename):
-        st.image(logo_filename, width=240)
-    else:
-        st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=240)
-    
-    st.markdown(f"""
-        <div class="contact-info">
-            Siam Square: 02-254-9300-2<br>
-            www.aims.co.th | Line ID: @aims2
-        </div>
-    """, unsafe_allow_html=True)
-
-# --- 5. ระบบ Dashboard ---
-if df is not None:
+    # --- ดึงข้อมูลนักเรียน ---
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
     if not s_data.empty:
@@ -114,7 +118,8 @@ if df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        # ส่วนเป้าหมายตัวใหญ่ยักษ์
+        # --- แถวกลาง (Center Row): ชื่อนักเรียน และ Target 1500 ตรงกลางจอ ---
+        st.markdown(f"<div class='student-name-title'>{student_name}</div>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-container">
                 <div class="target-label">TARGET SCORE</div>
@@ -146,12 +151,12 @@ if df is not None:
                 x=labels, y=s_data['Math Score'], name='Math', 
                 marker=dict(color='#002d56')
             ))
-            # R&W: สีขาวขอบฟ้า (Hollow White)
+            # R&W: แท่งสีขาวขอบฟ้า (Hollow White)
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
                 marker=dict(
-                    color='rgba(255, 255, 255, 1)', # พื้นขาวทึบ
-                    line=dict(color='#002d56', width=3) # ขอบสีฟ้าทึบ
+                    color='rgba(255, 255, 255, 1)', # ขาวทึบ
+                    line=dict(color='#002d56', width=3) # ขอบสีน้ำเงิน aims
                 )
             ))
             
@@ -194,7 +199,7 @@ if df is not None:
                     if v in selected_attempt:
                         st.markdown(f"<div class='topic-box'><span>{k}</span><b>{int(selected_attempt[v])}%</b></div>", unsafe_allow_html=True)
 
-            # --- 7. ข้อแนะนำ (Smart Insight) ---
+            # --- 7. Smart Insight ---
             st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
             st.markdown("<b style='color: #002d56; font-size: 19px;'>📖 ข้อแนะนำการเรียนเพิ่มเติม</b>", unsafe_allow_html=True)
             
@@ -205,18 +210,20 @@ if df is not None:
             if all_topics:
                 weak_t = min(all_topics, key=all_topics.get)
                 st.markdown(f"""
-                    <div style='font-size: 15px; color: #1e293b; line-height: 1.7; margin: 15px 0;'>
+                    <div style='font-size: 14px; color: #1e293b; line-height: 1.7; margin: 15px 0;'>
                         หนูวิเคราะห์ข้อมูลครั้งนี้ให้แล้วนะคะ จุดที่น้องต้องเร่งเสริมเพื่อให้ถึง 1500 คือหัวข้อ <b>{weak_t}</b> ค่ะ 
-                        ซึ่งได้เพียง <b>{int(all_topics[weak_t])}%</b> ในรอบนี้ หนูแนะนำให้พี่เน้นให้น้องทำโจทย์หัวข้อนี้เพิ่มขึ้นเป็นพิเศษนะคะ สู้ๆ ค่ะ!
+                        ซึ่งทำได้เพียง <b>{int(all_topics[weak_t])}%</b> ในรอบนี้ หนูแนะนำให้พี่เน้นให้น้องทำโจทย์หัวข้อนี้เพิ่มขึ้นเป็นพิเศษนะคะ สู้ๆ ค่ะ!
                     </div>
                 """, unsafe_allow_html=True)
             
             st.markdown("<b style='color: #002d56;'>📝 Incorrect Questions Analysis</b>", unsafe_allow_html=True)
             at_key = f"At {c_idx+1}"
-            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "หนูกำลังอัปเดตข้อมูลข้อที่ผิดให้ตามไฟล์ PDF ค่ะ")
+            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "หนูกำลังอัปเดตข้อมูล PDF ให้อยู่นะคะ")
             st.markdown(f"<div class='error-chip'>{incorrect_info}</div>", unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("<br><center style='color: #94a3b8; font-size: 11px;'>aims SAT Dashboard • Professional Edition • Data Synced from PDF</center>", unsafe_allow_html=True)
+elif role == "Admin":
+    st.title("⚙️ Admin Console")
+    st.dataframe(df, use_container_width=True)
