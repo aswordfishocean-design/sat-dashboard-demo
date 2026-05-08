@@ -47,8 +47,7 @@ if role == "Student" and df is not None:
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
     if not s_data.empty:
-        # บังคับเป้าหมาย 1500 คะแนนเท่ากันทุกคน
-        target = 1500
+        target = 1500 # เป้าหมาย 1500 คะแนนเท่ากันทุกคน
         
         if "active_student" not in st.session_state or st.session_state.active_student != student_name:
             st.session_state.active_student = student_name
@@ -80,15 +79,14 @@ if role == "Student" and df is not None:
         with left:
             st.subheader("📊 Score Trend")
             fig = go.Figure()
-            # ปรับชื่อแกน X เป็น Attempt 1, 2, 3...
             labels = [f"At {i+1}" for i in range(len(s_data))]
             
-            # Math Bar (สีฟ้าทึบ)
+            # Math Bar
             fig.add_trace(go.Bar(x=labels, y=s_data['Math Score'], name='Math', marker_color='#0284c7'))
-            # R&W Bar (สีขาวขอบฟ้า)
+            # R&W Bar
             fig.add_trace(go.Bar(x=labels, y=s_data['R&W Score'], name='Reading & Writing', marker_color='rgba(0,0,0,0)', marker_line_color='#0284c7', marker_line_width=2))
             
-            # ปรับแต่งแกน: X = ครั้งที่สอบ, Y = คะแนน (200-800)
+            # ปรับแกนตามคำขอ: Y = คะแนน (200-800), X = ครั้งที่สอบ
             fig.update_layout(
                 barmode='group',
                 xaxis=dict(title="ครั้งที่สอบ (Attempts)"),
@@ -108,6 +106,12 @@ if role == "Student" and df is not None:
         with right:
             st.markdown("<div class='attempt-card'>", unsafe_allow_html=True)
             st.subheader("📍 Attempt Detail")
+            
+            # เพิ่ม Math Score และ R&W Score ในหน้ารายละเอียด
+            sc1, sc2 = st.columns(2)
+            sc1.metric("Math Score", int(selected_attempt['Math Score']))
+            sc2.metric("R&W Score", int(selected_attempt['R&W Score']))
+            
             st.write(f"**Test Form:** {selected_attempt['Test Form']}")
             st.caption(f"วันที่สอบ: {selected_attempt['Date']}")
             
@@ -119,45 +123,45 @@ if role == "Student" and df is not None:
                 r_topics = {"Craft & Structure": 'R&W Craft & Structure (%)', "Info & Ideas": 'R&W Info & Ideas (%)', "Standard English": 'R&W Standard English (%)', "Expression of Ideas": 'R&W Expression of Ideas (%)'}
                 for k, v in r_topics.items(): st.markdown(f"<div class='topic-box'><span>{k}</span><b>{int(selected_attempt[v])}%</b></div>", unsafe_allow_html=True)
 
-            # --- Smart Insight (โดยน้องใจดี) ---
+            # --- Smart Insight (โดยพี่ใจดี) ---
             st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
-            st.markdown("<b style='color: #0369a1; font-size: 16px;'>👩‍🏫 Smart Insight (โดยน้องใจดี)</b>", unsafe_allow_html=True)
+            st.markdown("<b style='color: #0369a1; font-size: 16px;'>👩‍🏫 Smart Insight (โดยพี่ใจดี)</b>", unsafe_allow_html=True)
             
-            # คำนวณหาหัวข้อที่ควรเน้น (คะแนนต่ำที่สุด)
+            # วิเคราะห์หัวข้อที่อ่อนที่สุด
             all_scores = {**{k: selected_attempt[v] for k, v in m_topics.items()}, **{k: selected_attempt[v] for k, v in r_topics.items()}}
             weakest = min(all_scores, key=all_scores.get)
             
             st.markdown(f"""
                 <p style='font-size: 13px; color: #0c4a6e; margin-top: 10px;'>
-                พี่สาวคะ ครั้งนี้น้องมีจุดที่ต้องเร่งเสริมด่วนในหัวข้อ <b>{weakest}</b> ค่ะ เพราะได้คะแนนเพียง <b>{int(all_scores[weakest])}%</b> เท่านั้น 
-                แนะนำให้พี่สาวเน้นสอนหัวข้อนี้ก่อนนะคะ เพื่อเพิ่มโอกาสพุ่งสู่ 1500 ค่ะ!
+                พี่คะ ครั้งนี้น้องมีจุดที่ต้องเร่งเสริมด่วนในหัวข้อ <b>{weakest}</b> ค่ะ เพราะได้คะแนนเพียง <b>{int(all_scores[weakest])}%</b> เท่านั้น 
+                แนะนำให้พี่เน้นสอนหัวข้อนี้ก่อนนะคะ เพื่อเพิ่มโอกาสพุ่งสู่ 1500 ค่ะ!
             </p>
             <hr style='border: 0.5px solid #e0f2fe;'>
             <p style='font-size: 13px; color: #0c4a6e; font-weight: bold;'>📝 Incorrect Questions Analysis:</p>
             """, unsafe_allow_html=True)
             
-            # จำลองข้อมูลข้อที่ผิด (สามารถดึงจากฐานข้อมูลจริงได้ในอนาคต)
-            error_data = [
-                {"q": "Q12", "topic": "Algebra", "diff": "Hard", "class": "hard"},
-                {"q": "Q19", "topic": "Info & Ideas", "diff": "Medium", "class": "medium"},
-                {"q": "Q22", "topic": "Additional Topics", "diff": "Hard", "class": "hard"},
-                {"q": "Q05", "topic": "Standard English", "diff": "Easy", "class": "easy"}
-            ]
+            # จำลองข้อมูลข้อที่ผิดแบบ Dynamic (ในอนาคตดึงจากไฟล์ PDF รายข้อได้)
+            # ตัวอย่างการจำลองตามโจทย์ที่พี่มหาให้มา
+            incorrect_map = {
+                "Q12": {"topic": "Algebra", "diff": "Hard", "class": "hard"},
+                "Q19": {"topic": "Info & Ideas", "diff": "Medium", "class": "medium"},
+                "Q22": {"topic": "Additional Topics", "diff": "Hard", "class": "hard"},
+                "Q05": {"topic": "Standard English", "diff": "Easy", "class": "easy"}
+            }
             
-            for err in error_data:
+            for q_num, info in incorrect_map.items():
                 st.markdown(f"""
                     <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;'>
-                        <span style='font-size: 12px; color: #1e293b;'><b>{err['q']}</b> | {err['topic']}</span>
-                        <span class='difficulty-tag {err['class']}'>{err['diff']}</span>
+                        <span style='font-size: 12px; color: #1e293b;'><b>{q_num}</b> | {info['topic']}</span>
+                        <span class='difficulty-tag {info['class']}'>{info['diff']}</span>
                     </div>
                 """, unsafe_allow_html=True)
                 
             st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-# --- หน้า Admin ---
 elif role == "Admin":
-    st.title("⚙️ aims Admin Database Control")
+    st.title("⚙️ aims Admin Control")
     st.dataframe(df, use_container_width=True)
 
-st.markdown("<br><center style='color: #94a3b8; font-size: 11px;'>aims SAT Dashboard • Sister & Student Edition</center>", unsafe_allow_html=True)
+st.markdown("<br><center style='color: #94a3b8; font-size: 11px;'>aims SAT Dashboard • P' Jaidee & Student Edition</center>", unsafe_allow_html=True)
