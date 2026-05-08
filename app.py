@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import os
 
 # --- 1. การเชื่อมต่อข้อมูล (V3) ---
 sheet_id = "1ZqScd-XtnaR6zTITejMVIbpIW-MAXa2YphOu6PXaCiI" 
@@ -50,7 +49,6 @@ st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
 st.markdown("""
     <style>
     .main { background-color: #f8fafc; }
-    /* Target Score Section */
     .target-box { text-align: center; margin-top: 10px; margin-bottom: 30px; }
     .target-label { font-size: 24px; color: #64748b; font-weight: 700; letter-spacing: 4px; }
     .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
@@ -64,19 +62,18 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 4. Header (Branding: aims Logo & Contact) ---
-h_left, h_right = st.columns([2, 1])
+h_left, h_right = st.columns([2.5, 1])
 
 with h_right:
-    # หนูโหลดโลโก้จากไฟล์ที่พี่มหาอัปโหลดให้ค่ะ
-    logo_path = "aims_logo_2014_01.jpg"
-    if os.path.exists(logo_path):
-        st.image(logo_path, width=220)
-    else:
-        # ถ้าไม่มีไฟล์ในโฟลเดอร์ ให้ใช้ URL สำรองค่ะ
-        st.image("https://aims.co.th/wp-content/uploads/2019/12/Logo-aims.png", width=220)
+    # --- จุดแก้โลโก้ค่ะ! โหลดจากไฟล์ภาพโดยตรง ---
+    try:
+        # พี่มหาต้องเอาไฟล์ aims_logo_2014_01.jpg ใส่ใน GitHub ด้วยนะคะ
+        st.image("aims_logo_2014_01.jpg", width=220)
+    except:
+        st.warning("หนูหาไฟล์รูป 'aims_logo_2014_01.jpg' ไม่เจอค่ะ รบกวนพี่มหาอัปโหลดขึ้น GitHub ด้วยนะคะ")
         
     st.markdown("""
-        <div style='text-align: right; color: #002d56; font-size: 15px; font-weight: bold; line-height: 1.6; margin-top: -15px;'>
+        <div style='text-align: right; color: #002d56; font-size: 15px; font-weight: bold; line-height: 1.6; margin-top: 5px;'>
             Siam Square: 02-254-9300-2<br>
             <a href='https://www.aims.co.th' target='_blank' style='color: #002d56; text-decoration: none;'>www.aims.co.th</a><br>
             Line ID: @aims2
@@ -104,7 +101,6 @@ if role == "Student" and df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        # แสดงชื่อนักเรียนและเป้าหมายยักษ์
         st.markdown(f"<h1 style='color: #002d56; margin-bottom: -10px;'>{student_name}</h1>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-box">
@@ -113,7 +109,6 @@ if role == "Student" and df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-        # Metrics
         c1, c2, c3 = st.columns(3)
         with c1: st.metric("คะแนนครั้งที่เลือก", int(selected_attempt['Total Score']), f"At {c_idx+1}")
         with c2: st.metric("คะแนนสูงสุด (Best)", int(best_score))
@@ -124,7 +119,7 @@ if role == "Student" and df is not None:
 
         st.divider()
 
-        # --- 6. Layout กราฟ (Blue & Hollow White) และรายละเอียด ---
+        # --- 6. Layout กราฟ และรายละเอียด ---
         left, right = st.columns([1.8, 1.2])
 
         with left:
@@ -132,17 +127,17 @@ if role == "Student" and df is not None:
             fig = go.Figure()
             labels = [f"At {i+1}" for i in range(len(s_data))]
             
-            # Math: สีฟ้าทึบ (aims Blue)
+            # Math: สีฟ้าทึบ
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['Math Score'], name='Math', 
                 marker=dict(color='#002d56')
             ))
-            # R&W: สีขาวขอบฟ้า (Hollow White)
+            # R&W: สีขาวขอบฟ้า (โปร่งใสข้างใน)
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
                 marker=dict(
-                    color='rgba(255, 255, 255, 1)', # พื้นขาวทึบ (หรือ rgba(0,0,0,0) ถ้าจะเอาโปร่งใส)
-                    line=dict(color='#002d56', width=3) # ขอบสีฟ้า aims
+                    color='rgba(255, 255, 255, 1)', 
+                    line=dict(color='#002d56', width=3) 
                 )
             ))
             
@@ -152,7 +147,8 @@ if role == "Student" and df is not None:
                 yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 300, 400, 500, 600, 700, 800]),
                 height=500, margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)'
             )
-            st.plotly_chart(fig, use_container_width=True)
+            # --- จุดแก้สีกราฟค่ะ! บังคับ theme=None เพื่อให้ Streamlit ไม่เอาสีมาทับ ---
+            st.plotly_chart(fig, use_container_width=True, theme=None) 
             
             st.write("🔍 คลิกเลือกครั้งที่ต้องการดูรายละเอียดด้านข้างค่ะ:")
             btn_cols = st.columns(len(s_data))
@@ -182,7 +178,7 @@ if role == "Student" and df is not None:
                     if v in selected_attempt:
                         st.markdown(f"<div class='topic-box'><span>{k}</span><b>{int(selected_attempt[v])}%</b></div>", unsafe_allow_html=True)
 
-            # --- 7. ข้อแนะนำ (Smart Insight) เจาะลึกยาวๆ ค่ะ ---
+            # --- 7. ข้อแนะนำ (Smart Insight) ---
             st.markdown("<div class='insight-box'>", unsafe_allow_html=True)
             st.markdown("<b style='color: #0369a1; font-size: 18px;'>📖 ข้อแนะนำการเรียนเพิ่มเติม</b>", unsafe_allow_html=True)
             
@@ -205,7 +201,7 @@ if role == "Student" and df is not None:
             st.markdown("<b style='color: #0369a1;'>📝 Incorrect Questions Analysis</b>", unsafe_allow_html=True)
             
             at_key = f"At {c_idx+1}"
-            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "หนูกำลังอัปเดตข้อมูลข้อที่ผิดให้ตามไฟล์ PDF ค่ะ")
+            incorrect_info = incorrect_mapping.get(student_name, {}).get(at_key, "ไม่มีข้อมูลข้อที่ผิดสำหรับรอบนี้ค่ะ")
             st.markdown(f"<div class='error-chip'>{incorrect_info}</div>", unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
@@ -214,5 +210,3 @@ if role == "Student" and df is not None:
 elif role == "Admin":
     st.title("⚙️ aims Admin Control")
     st.dataframe(df, use_container_width=True)
-
-st.markdown("<br><center style='color: #94a3b8; font-size: 11px;'>aims SAT Dashboard • Professional Edition • Data Synced from PDF</center>", unsafe_allow_html=True)
