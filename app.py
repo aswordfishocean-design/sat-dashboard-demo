@@ -41,10 +41,11 @@ def load_and_process_data():
         
         return df
     except Exception as e:
-        st.error(f"หนูโหลดข้อมูล Demo ไม่ได้ค่ะ: {e}")
+        st.error(f"หนูโหลดข้อมูล Demo ไม่ได้ค่ะ รบกวนเช็กไฟล์ CSV ทั้ง 3 ไฟล์นะคะ: {e}")
         return None
 
-df = load_process_data()
+# แก้ไขชื่อฟังก์ชันตรงนี้ให้ถูกต้องแล้วค่ะ!
+df = load_and_process_data()
 
 # --- 2. ฟังก์ชันเสริม (Helper Functions) ---
 def get_branding():
@@ -138,12 +139,14 @@ if df is not None:
             t1, t2 = st.tabs(["Math", "R&W"])
             with t1:
                 for k in ["Algebra", "Advanced Math", "Problem Solving"]:
-                    st.write(f"{k}: {int(selected[f'Math {k} (%)'])}%")
-                    st.progress(selected[f'Math {k} (%)']/100)
+                    if pd.notna(selected[f'Math {k} (%)']):
+                        st.write(f"{k}: {int(selected[f'Math {k} (%)'])}%")
+                        st.progress(selected[f'Math {k} (%)']/100)
             with t2:
                 for k in ["Standard English", "Expression of Ideas"]:
-                    st.write(f"{k}: {int(selected[f'R&W {k} (%)'])}%")
-                    st.progress(selected[f'R&W {k} (%)']/100)
+                    if pd.notna(selected[f'R&W {k} (%)']):
+                        st.write(f"{k}: {int(selected[f'R&W {k} (%)'])}%")
+                        st.progress(selected[f'R&W {k} (%)']/100)
 
         st.divider()
         st.header("🔍 Deep Analysis: Incorrect Questions")
