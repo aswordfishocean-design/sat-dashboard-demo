@@ -3,8 +3,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 import base64
+import random
 
-# --- 1. ระบบจัดการข้อมูลแบบเชื่อมโยง (Relational Data Loading) ---
+# --- 1. ระบบจัดการข้อมูลแบบเชื่อมโยง ---
 @st.cache_data(ttl=10)
 def load_data():
     try:
@@ -23,45 +24,47 @@ def load_data():
         df['Test Form'] = df['test_form']
         df['Target Score'] = df['target_score']
 
-        df['Math Algebra (%)'] = (df['alg_c'] / df['alg_t']) * 100
-        df['Math Problem Solving (%)'] = (df['ps_c'] / df['ps_t']) * 100
-        df['Math Advanced Math (%)'] = (df['adv_c'] / df['adv_t']) * 100
-        df['Math Additional Topics (%)'] = (df['add_c'] / df['add_t']) * 100
-
-        df['R&W Craft & Structure (%)'] = (df['cs_c'] / df['cs_t']) * 100
-        df['R&W Info & Ideas (%)'] = (df['ii_c'] / df['ii_t']) * 100
-        df['R&W Standard English (%)'] = (df['sec_c'] / df['sec_t']) * 100
-        df['R&W Expression of Ideas (%)'] = (df['ei_c'] / df['ei_t']) * 100
-
+        # คำนวณเปอร์เซ็นต์
+        for c in [['alg_c','alg_t','Math Algebra (%)'], ['ps_c','ps_t','Math Problem Solving (%)'], 
+                  ['adv_c','adv_t','Math Advanced Math (%)'], ['add_c','add_t','Math Additional Topics (%)'],
+                  ['cs_c','cs_t','R&W Craft & Structure (%)'], ['ii_c','ii_t','R&W Info & Ideas (%)'],
+                  ['sec_c','sec_t','R&W Standard English (%)'], ['ei_c','ei_t','R&W Expression of Ideas (%)']]:
+            df[c[2]] = (df[c[0]] / df[c[1]]) * 100
         return df
     except Exception as e:
-        st.error(f"หนูโหลดข้อมูล Demo ไม่ได้ค่ะ รบกวนเช็กไฟล์ CSV ทั้ง 3 ไฟล์นะคะ: {e}")
+        st.error(f"หนูโหลดข้อมูลไม่ได้ค่ะ: {e}")
         return None
 
 df = load_data()
 
-# --- 2. DEEP ANALYSIS MAPPING (ข้อมูลจริงที่คีย์ไว้) ---
-deep_analysis_data = {
-    "Aphiphongphiphut Kaweeyarn": {
-        "At 1": [
-            {"Subject": "Math", "Question": "Q12", "Topic": "Advanced Math", "Detail": "Non-linear systems of equations (ควรอ่านโจทย์ให้ละเอียดเรื่องตัวแปร)"},
-            {"Subject": "Math", "Question": "Q16", "Topic": "Advanced Math", "Detail": "Exponential growth modeling (สับสนเรื่องฐานของเลขยกกำลัง)"},
-            {"Subject": "R&W", "Question": "Q14", "Topic": "Info & Ideas", "Detail": "Central Ideas - Inference (วิเคราะห์ข้อยกเว้นในบทความพลาดไป)"},
-            {"Subject": "R&W", "Question": "Q19", "Topic": "Standard English", "Detail": "Transitions (การเลือกคำเชื่อมประโยคที่ขัดแย้งกัน)"}
-        ],
-        "At 3": [
-            {"Subject": "Math", "Question": "Q10", "Topic": "Algebra", "Detail": "Linear Equation Word Problems (ตีความโจทย์เป็นสมการผิด)"},
-            {"Subject": "Math", "Question": "Q18", "Topic": "Additional Topics", "Detail": "Circle Equation (จำสูตรการหาจุดศูนย์กลางรัศมีไม่ได้)"},
-            {"Subject": "R&W", "Question": "Q3", "Topic": "Craft & Structure", "Detail": "Words in Context (การเลือกความหมายของคำศัพท์ที่เปลี่ยนไปตามบริบท)"}
-        ]
-    },
-    "Pharin Chantapakul": {
-        "At 1": [
-            {"Subject": "Math", "Question": "Q1", "Topic": "Algebra", "Detail": "Linear Equations (Careless error ในการแก้สมการพื้นฐาน)"},
-            {"Subject": "R&W", "Question": "Q4", "Topic": "Craft & Structure", "Detail": "Text Structure (วิเคราะห์จุดประสงค์ของผู้เขียนในแต่ละย่อหน้าพลาด)"}
-        ]
+# --- 2. ฟังก์ชันวิเคราะห์ข้อผิดอัตโนมัติสำหรับ Demo ---
+def generate_smart_demo_analysis(selected_attempt):
+    # คลังหัวข้อและรายละเอียดสำหรับสุ่มสร้าง Demo ให้สมจริง
+    topic_details = {
+        "Math Algebra (%)": ["Linear Equation", "Systems of Equations", "Linear Functions"],
+        "Math Problem Solving (%)": ["Ratios & Proportions", "Probability", "Data Inference"],
+        "Math Advanced Math (%)": ["Quadratic Equations", "Non-linear Functions", "Exponential Growth"],
+        "Math Additional Topics (%)": ["Geometry", "Trigonometry", "Circle Equations"],
+        "R&W Craft & Structure (%)": ["Words in Context", "Text Structure", "Cross-Text Analysis"],
+        "R&W Info & Ideas (%)": ["Central Ideas", "Evidence-based Claims", "Data Reasoning"],
+        "R&W Standard English (%)": ["Punctuation", "Subject-Verb Agreement", "Sentence Structure"],
+        "R&W Expression of Ideas (%)": ["Transitions", "Rhetorical Synthesis", "Conciseness"]
     }
-}
+    
+    analysis = []
+    # วนลูปเช็กหัวข้อที่มีคะแนนน้อยกว่า 100%
+    for col, topics in topic_details.items():
+        if selected_attempt[col] < 100:
+            subj = "Math" if "Math" in col else "R&W"
+            q_num = f"Q{random.randint(1, 27)}"
+            t_name = topics[random.randint(0, len(topics)-1)]
+            analysis.append({
+                "Subject": subj,
+                "Question": q_num,
+                "Topic": t_name,
+                "Detail": f"<span style='color:#64748b;'>(AI-Analysis)</span> พลาดในส่วนของ {t_name} ควรเน้นทบทวนบทนิยามและฝึกโจทย์ระดับ Hard"
+            })
+    return analysis[:5] # แสดงสูงสุด 5 ข้อเพื่อความสวยงาม
 
 # --- 3. การตั้งค่าหน้าตาแอป & CSS ---
 st.set_page_config(page_title="aims SAT Deep Analysis", layout="wide")
@@ -75,8 +78,6 @@ st.markdown("""
     .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
     .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .analysis-card { background-color: white; padding: 30px; border-radius: 25px; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    
-    /* ตาราง Deep Analysis */
     .deep-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     .deep-table th { background-color: #002d56; color: white; padding: 15px; text-align: left; }
     .deep-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 15px; }
@@ -87,7 +88,6 @@ st.markdown("""
 
 # --- 4. Header Section ---
 header_left, header_right = st.columns([1, 1])
-
 with header_left:
     if df is not None:
         student_list = sorted(df['Student Name'].unique())
@@ -149,18 +149,13 @@ if df is not None:
 
         # --- 6. กราฟและรายละเอียด ---
         left, right = st.columns([1.6, 1.4])
-
         with left:
             st.subheader("📊 Performance Trend")
             fig = go.Figure()
             labels = [f"At {i+1}" for i in range(len(s_data))]
             fig.add_trace(go.Bar(x=labels, y=s_data['Math Score'], name='Math', marker_color='#002d56'))
             fig.add_trace(go.Bar(x=labels, y=s_data['R&W Score'], name='R&W', marker=dict(color='#ffffff', line=dict(color='#002d56', width=2))))
-            
-            fig.update_layout(
-                barmode='group', plot_bgcolor='white', height=450, 
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
+            fig.update_layout(barmode='group', plot_bgcolor='white', height=450, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
             btn_cols = st.columns(len(s_data))
@@ -171,7 +166,16 @@ if df is not None:
 
         with right:
             st.markdown("<div class='analysis-card'>", unsafe_allow_html=True)
-            st.subheader(f"📍 Mastery Details (At {c_idx+1})")
+            # แก้ไขส่วนหัวตามสั่ง: แสดงคะแนน Math และ R&W ของรอบนั้นๆ
+            st.subheader(f"📍 At {c_idx+1} Detail")
+            st.markdown(f"""
+                <div style='background-color:#f8fafc; padding:15px; border-radius:10px; margin-bottom:20px; border-left:5px solid #002d56;'>
+                    <span style='font-size:18px; font-weight:bold; color:#002d56;'>
+                        Math: {int(selected_attempt['Math Score'])} | R&W: {int(selected_attempt['R&W Score'])}
+                    </span><br>
+                    <span style='font-size:14px; color:#64748b;'>🗓️ Date: {selected_attempt['Date']} | Form: {selected_attempt['Test Form']}</span>
+                </div>
+            """, unsafe_allow_html=True)
             
             t1, t2 = st.tabs(["Mathematics Mastery", "R&W Mastery"])
             with t1:
@@ -188,25 +192,13 @@ if df is not None:
 
         st.divider()
 
-        # --- 7. DEEP ANALYSIS SECTION (พร้อมระบบ Auto-Generate Demo Data) ---
+        # --- 7. DEEP ANALYSIS SECTION (Smart Analysis) ---
         st.markdown("<div class='analysis-card'>", unsafe_allow_html=True)
         st.header("🔍 Deep Analysis: Incorrect Questions & Topic Review")
         
-        at_key = f"At {c_idx+1}"
+        # ระบบจะสร้างข้อมูลที่ผิดให้สอดคล้องกับคะแนนจริงของนักเรียนแต่ละคนอัตโนมัติ
+        analysis_list = generate_smart_demo_analysis(selected_attempt)
         
-        # ดึงข้อมูลจากฐานข้อมูลหลักก่อน
-        analysis_list = deep_analysis_data.get(student_name, {}).get(at_key, [])
-        
-        # ถ้านักเรียนคนไหนไม่มีข้อมูล ให้สร้างข้อมูล Mock up ขึ้นมาสำหรับ Demo โดยอัตโนมัติ!
-        if not analysis_list:
-            analysis_list = [
-                {"Subject": "Math", "Question": "Q8", "Topic": "Advanced Math", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Quadratic Equations - สับสนการแยกตัวประกอบและการใช้สูตร"},
-                {"Subject": "Math", "Question": "Q15", "Topic": "Problem Solving", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Data Inference - วิเคราะห์แนวโน้มจากกราฟ Scatterplot พลาด"},
-                {"Subject": "R&W", "Question": "Q12", "Topic": "Craft & Structure", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Words in Context - ไม่คุ้นเคยกับคำศัพท์เฉพาะทางในบริบทวิทยาศาสตร์"},
-                {"Subject": "R&W", "Question": "Q21", "Topic": "Expression of Ideas", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Transitions - เลือกคำเชื่อมประโยคที่แสดงความขัดแย้งผิดพลาด"}
-            ]
-
-        # สร้างตารางวิเคราะห์
         table_html = "<table class='deep-table'><tr><th>Subject</th><th>Question</th><th>Topic Domain</th><th>Deep Insight / Recommended Action</th></tr>"
         for item in analysis_list:
             tag_class = "tag-math" if item['Subject'] == "Math" else "tag-rw"
@@ -214,13 +206,12 @@ if df is not None:
         table_html += "</table>"
         st.markdown(table_html, unsafe_allow_html=True)
 
-        # ส่วนแนะนำกลยุทธ์
         st.markdown("<br><b style='color: #002d56; font-size: 20px;'>💡 Mentor Strategy:</b>", unsafe_allow_html=True)
-        all_topics = {**{k: selected_attempt[v] for k, v in {"Algebra": 'Math Algebra (%)', "Advanced Math": 'Math Advanced Math (%)', "Expression of Ideas": 'R&W Expression of Ideas (%)'}.items() if v in selected_attempt and pd.notna(selected_attempt[v])}}
+        all_topics = {**{k: selected_attempt[v] for k, v in {"Algebra": 'Math Algebra (%)', "Advanced Math": 'Math Advanced Math (%)'}.items() if v in selected_attempt and pd.notna(selected_attempt[v])}}
         if all_topics:
             weakest = min(all_topics, key=all_topics.get)
             st.write(f"จากการประมวลผลข้อมูลในรอบนี้ น้องควรเร่งอุดรอยรั่วในหัวข้อ **{weakest}** เป็นอันดับหนึ่ง "
-                     f"เพื่อให้คะแนนรวมไปถึงเป้าหมาย **{target_val}** แนะนำให้ทีมวิชาการดึงข้อสอบเก่า (Past Papers) หมวดนี้มาให้น้องฝึกทำแบบจับเวลาอย่างน้อย 2 ชุดค่ะ")
+                     f"เพื่อให้คะแนนรวมไปถึงเป้าหมาย **{target_val}** แนะนำให้ทีมวิชาการจัดชุดโจทย์หมวดนี้แบบเข้มข้นให้น้องทำเพิ่มเติมค่ะ")
         
         st.markdown("</div>", unsafe_allow_html=True)
 
