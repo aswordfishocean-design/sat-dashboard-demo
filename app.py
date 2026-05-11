@@ -4,23 +4,47 @@ import plotly.graph_objects as go
 import os
 import base64
 
-# --- 1. การเชื่อมต่อข้อมูล ---
-sheet_id = "1ZqScd-XtnaR6zTITejMVIbpIW-MAXa2YphOu6PXaCiI" 
-url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
-
+# --- 1. ระบบจัดการข้อมูลแบบเชื่อมโยง (Relational Data Loading) ---
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        data = pd.read_csv(url)
-        data.columns = data.columns.str.strip() 
-        data['Date'] = pd.to_datetime(data['Date']).dt.date
-        return data
+        # โหลดไฟล์ Demo ทั้ง 3 ไฟล์
+        students = pd.read_csv('students.csv')
+        scores = pd.read_csv('scores.csv')
+        topic_scores = pd.read_csv('topic_scores.csv')
+
+        # นำตารางมาเชื่อมกัน (Merge) ด้วย student_id และ score_id
+        df = scores.merge(students, on='student_id', how='left')
+        df = df.merge(topic_scores, on=['score_id', 'student_id'], how='left')
+
+        # จัดเตรียมคอลัมน์ให้พร้อมแสดงผลบน Dashboard
+        df['Student Name'] = df['full_name']
+        df['Date'] = pd.to_datetime(df['test_date']).dt.date
+        df['Math Score'] = df['math_score']
+        df['R&W Score'] = df['rw_score']
+        df['Total Score'] = df['total_score']
+        df['Test Form'] = df['test_form']
+        df['Target Score'] = df['target_score']
+
+        # คำนวณเปอร์เซ็นต์ความถูกต้องของแต่ละหัวข้ออัตโนมัติ
+        df['Math Algebra (%)'] = (df['alg_c'] / df['alg_t']) * 100
+        df['Math Problem Solving (%)'] = (df['ps_c'] / df['ps_t']) * 100
+        df['Math Advanced Math (%)'] = (df['adv_c'] / df['adv_t']) * 100
+        df['Math Additional Topics (%)'] = (df['add_c'] / df['add_t']) * 100
+
+        df['R&W Craft & Structure (%)'] = (df['cs_c'] / df['cs_t']) * 100
+        df['R&W Info & Ideas (%)'] = (df['ii_c'] / df['ii_t']) * 100
+        df['R&W Standard English (%)'] = (df['sec_c'] / df['sec_t']) * 100
+        df['R&W Expression of Ideas (%)'] = (df['ei_c'] / df['ei_t']) * 100
+
+        return df
     except Exception as e:
+        st.error(f"หนูโหลดข้อมูล Demo ไม่ได้ค่ะ รบกวนเช็กว่ามีไฟล์ CSV ทั้ง 3 ไฟล์อยู่ในโฟลเดอร์เดียวกันหรือยังนะคะ: {e}")
         return None
 
 df = load_data()
 
-# --- 2. DEEP ANALYSIS MAPPING (Incorrect Questions Details) ---
+# --- 2. DEEP ANALYSIS MAPPING (สำหรับทำ Demo เสนอผู้บริหาร) ---
 deep_analysis_data = {
     "Aphiphongphiphut Kaweeyarn": {
         "At 1": [
@@ -53,7 +77,7 @@ st.markdown("""
     /* ชื่อนักเรียนตรงกลาง */
     .student-name-header { text-align: center; color: #002d56; font-size: 50px; font-weight: 900; margin-top: 10px; }
     
-    /* Target 1500 */
+    /* Target Score */
     .target-container { text-align: center; margin-bottom: 30px; }
     .target-label { font-size: 22px; color: #64748b; font-weight: 700; letter-spacing: 4px; }
     .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
@@ -70,7 +94,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. Header Section (Selectbox Left | Logo Right) ---
+# --- 4. Header Section ---
 header_left, header_right = st.columns([1, 1])
 
 with header_left:
@@ -80,7 +104,6 @@ with header_left:
         student_name = st.selectbox("📌 เลือกนักเรียนที่ต้องการดูวิเคราะห์เชิงลึก:", student_list, on_change=reset_idx)
 
 with header_right:
-    # โหลดโลโก้ aims แบบปลอดภัยค่ะ
     logo_filename = "aims_logo_2014_01_crop_blue_200x50px.png"
     img_html = ""
     if os.path.exists(logo_filename):
@@ -100,12 +123,14 @@ with header_right:
         </div>
     ''', unsafe_allow_html=True)
 
-# --- 5. ระบบประมวลผลข้อมูล ---
+# --- 5. ระบบ Dashboard ---
 if df is not None:
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
     if not s_data.empty:
-        target_val = 1500
+        # ใช้ Target Score จากฐานข้อมูลแทนค่าคงที่ 1500
+        target_val = int(s_data['Target Score'].iloc[0]) if pd.notna(s_data['Target Score'].iloc[0]) else 1500
+        
         if "active_student" not in st.session_state or st.session_state.active_student != student_name:
             st.session_state.active_student = student_name
             st.session_state.selected_idx = len(s_data) - 1
@@ -127,13 +152,13 @@ if df is not None:
         with m1: st.metric("Score At Selected", int(selected_attempt['Total Score']), f"At {c_idx+1}")
         with m2: st.metric("Personal Best", int(best_score))
         with m3:
-            prog = int((best_score / target_val) * 100)
-            st.metric("Progress to 1500", f"{prog}%", f"Remaining: {target_val - int(best_score)}")
+            prog = min(int((best_score / target_val) * 100), 100)
+            st.metric("Progress to Target", f"{prog}%", f"Remaining: {max(target_val - int(best_score), 0)}")
             st.progress(prog/100)
 
         st.divider()
 
-        # --- 6. กราฟและรายละเอียดรายบทเรียน ---
+        # --- 6. กราฟและรายละเอียด ---
         left, right = st.columns([1.6, 1.4])
 
         with left:
@@ -143,7 +168,6 @@ if df is not None:
             fig.add_trace(go.Bar(x=labels, y=s_data['Math Score'], name='Math', marker_color='#002d56'))
             fig.add_trace(go.Bar(x=labels, y=s_data['R&W Score'], name='R&W', marker=dict(color='#ffffff', line=dict(color='#002d56', width=2))))
             
-            # ลบ theme=None ออกจากตรงนี้แล้วค่ะ ตัวปัญหาอยู่ตรงนี้เอง!
             fig.update_layout(
                 barmode='group', 
                 plot_bgcolor='white', 
@@ -151,10 +175,8 @@ if df is not None:
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
             
-            # บังคับสีตอนเรนเดอร์กราฟ (ทำถูกจุดแล้วค่ะ)
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
-            # Selector
             btn_cols = st.columns(len(s_data))
             for i in range(len(s_data)):
                 if btn_cols[i].button(f"At {i+1}", key=f"btn_{i}", use_container_width=True, type="primary" if i == c_idx else "secondary"):
@@ -168,19 +190,19 @@ if df is not None:
             t1, t2 = st.tabs(["Mathematics Mastery", "R&W Mastery"])
             with t1:
                 for k, v in {"Algebra": 'Math Algebra (%)', "Problem Solving": 'Math Problem Solving (%)', "Advanced Math": 'Math Advanced Math (%)', "Additional Topics": 'Math Additional Topics (%)'}.items():
-                    if v in selected_attempt:
+                    if v in selected_attempt and pd.notna(selected_attempt[v]):
                         st.markdown(f"**{k}**: {int(selected_attempt[v])}%")
                         st.progress(int(selected_attempt[v])/100)
             with t2:
                 for k, v in {"Craft & Structure": 'R&W Craft & Structure (%)', "Info & Ideas": 'R&W Info & Ideas (%)', "Standard English": 'R&W Standard English (%)', "Expression of Ideas": 'R&W Expression of Ideas (%)'}.items():
-                    if v in selected_attempt:
+                    if v in selected_attempt and pd.notna(selected_attempt[v]):
                         st.markdown(f"**{k}**: {int(selected_attempt[v])}%")
                         st.progress(int(selected_attempt[v])/100)
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.divider()
 
-        # --- 7. DEEP ANALYSIS SECTION (สิ่งสำคัญที่สุด) ---
+        # --- 7. DEEP ANALYSIS SECTION ---
         st.markdown("<div class='analysis-card'>", unsafe_allow_html=True)
         st.header("🔍 Deep Analysis: Incorrect Questions & Topic Review")
         
@@ -188,7 +210,6 @@ if df is not None:
         analysis_list = deep_analysis_data.get(student_name, {}).get(at_key, [])
         
         if analysis_list:
-            # สร้างตารางวิเคราะห์
             table_html = "<table class='deep-table'><tr><th>Subject</th><th>Question</th><th>Topic Domain</th><th>Deep Insight / Recommended Action</th></tr>"
             for item in analysis_list:
                 tag_class = "tag-math" if item['Subject'] == "Math" else "tag-rw"
@@ -196,15 +217,14 @@ if df is not None:
             table_html += "</table>"
             st.markdown(table_html, unsafe_allow_html=True)
         else:
-            st.info(f"ยังไม่มีข้อมูลวิเคราะห์ข้อที่ผิดสำหรับ {at_key} ของนักเรียนท่านนี้ค่ะ (พี่มหาเพิ่มข้อมูลในส่วน deep_analysis_data ในโค้ดได้เลยค่ะ)")
+            st.info(f"ยังไม่มีข้อมูลวิเคราะห์ข้อที่ผิดสำหรับ {at_key} ของนักเรียนท่านนี้ค่ะ ทีมวิชาการสามารถอัปเดตข้อมูลเพิ่มเติมได้ในระบบค่ะ")
 
-        # ส่วนแนะนำกลยุทธ์
         st.markdown("<br><b style='color: #002d56; font-size: 20px;'>💡 Mentor Strategy:</b>", unsafe_allow_html=True)
-        all_topics = {**{k: selected_attempt[v] for k, v in {"Algebra": 'Math Algebra (%)', "Advanced Math": 'Math Advanced Math (%)'}.items() if v in selected_attempt}}
+        all_topics = {**{k: selected_attempt[v] for k, v in {"Algebra": 'Math Algebra (%)', "Advanced Math": 'Math Advanced Math (%)'}.items() if v in selected_attempt and pd.notna(selected_attempt[v])}}
         if all_topics:
             weakest = min(all_topics, key=all_topics.get)
             st.write(f"จากการวิเคราะห์คะแนนและข้อที่ผิดในรอบนี้ น้องควรเร่งติวในหัวข้อ **{weakest}** เป็นอันดับหนึ่งค่ะ "
-                     "หนูแนะนำให้พี่มหาให้น้องทำ Error Log และทำโจทย์ซ้ำในหมวดนี้อย่างน้อย 50 ข้อก่อนการสอบรอบถัดไปนะคะ สู้ๆ ค่ะ!")
+                     f"เพื่อให้คะแนนรวมไปถึงเป้าหมาย **{target_val}** แนะนำให้ทีมวิชาการจัดโจทย์ซ้ำในหมวดนี้ให้ทำเพิ่มเติมค่ะ")
         
         st.markdown("</div>", unsafe_allow_html=True)
 
