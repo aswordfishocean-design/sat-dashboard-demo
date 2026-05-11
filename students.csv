@@ -1,0 +1,16 @@
+student_id,full_name,nickname,class_id,teacher_id,target_score,email,start_date,status
+STU-0001,Aphiphongphiphut Kaweeyarn,Phong,CLS-A,TCH-001,1500,phong@demo.com,2026-01-10,active
+STU-0002,Siriporn Suksawat,Nong,CLS-A,TCH-001,1400,nong@demo.com,2026-01-10,active
+STU-0003,Thanakorn Wichit,Tan,CLS-B,TCH-002,1350,tan@demo.com,2026-01-10,active
+STU-0004,Warisa Phanomchai,Fah,CLS-A,TCH-001,1450,fah@demo.com,2026-01-10,active
+STU-0005,Nattapong Kerdmongkol,Pete,CLS-B,TCH-002,1400,pete@demo.com,2026-01-10,active
+STU-0006,Pimchanok Rattanawong,Pim,CLS-C,TCH-003,1300,pim@demo.com,2026-02-01,active
+STU-0007,Chayanit Sukhonthamat,Ning,CLS-C,TCH-003,1350,ning@demo.com,2026-02-01,active
+STU-0008,Kritsada Jaidee,Krit,CLS-B,TCH-002,1500,krit@demo.com,2026-02-01,active
+STU-0009,Pavinee Moonthong,May,CLS-A,TCH-001,1400,may@demo.com,2026-02-01,active
+STU-0010,Supakorn Thanakit,Ken,CLS-C,TCH-003,1450,ken@demo.com,2026-02-01,active
+STU-0011,Lalita Chanpen,Lala,CLS-B,TCH-002,1350,lala@demo.com,2026-03-01,active
+STU-0012,Worawit Sombat,Win,CLS-A,TCH-001,1300,win@demo.com,2026-03-01,active
+STU-0013,Natthida Bunyarit,Nat,CLS-C,TCH-003,1400,nat@demo.com,2026-03-01,active
+STU-0014,Pornthep Kongkaew,Top,CLS-B,TCH-002,1500,top@demo.com,2026-03-01,active
+STU-0015,Anchisa Thipwan,An,CLS-A,TCH-001,1450,an@demo.com,2026-03-01,active
