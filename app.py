@@ -8,16 +8,13 @@ import base64
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        # โหลดไฟล์ Demo ทั้ง 3 ไฟล์
         students = pd.read_csv('students.csv')
         scores = pd.read_csv('scores.csv')
         topic_scores = pd.read_csv('topic_scores.csv')
 
-        # นำตารางมาเชื่อมกัน (Merge) ด้วย student_id และ score_id
         df = scores.merge(students, on='student_id', how='left')
         df = df.merge(topic_scores, on=['score_id', 'student_id'], how='left')
 
-        # จัดเตรียมคอลัมน์ให้พร้อมแสดงผลบน Dashboard
         df['Student Name'] = df['full_name']
         df['Date'] = pd.to_datetime(df['test_date']).dt.date
         df['Math Score'] = df['math_score']
@@ -26,7 +23,6 @@ def load_data():
         df['Test Form'] = df['test_form']
         df['Target Score'] = df['target_score']
 
-        # คำนวณเปอร์เซ็นต์ความถูกต้องของแต่ละหัวข้ออัตโนมัติ
         df['Math Algebra (%)'] = (df['alg_c'] / df['alg_t']) * 100
         df['Math Problem Solving (%)'] = (df['ps_c'] / df['ps_t']) * 100
         df['Math Advanced Math (%)'] = (df['adv_c'] / df['adv_t']) * 100
@@ -39,12 +35,12 @@ def load_data():
 
         return df
     except Exception as e:
-        st.error(f"หนูโหลดข้อมูล Demo ไม่ได้ค่ะ รบกวนเช็กว่ามีไฟล์ CSV ทั้ง 3 ไฟล์อยู่ในโฟลเดอร์เดียวกันหรือยังนะคะ: {e}")
+        st.error(f"หนูโหลดข้อมูล Demo ไม่ได้ค่ะ รบกวนเช็กไฟล์ CSV ทั้ง 3 ไฟล์นะคะ: {e}")
         return None
 
 df = load_data()
 
-# --- 2. DEEP ANALYSIS MAPPING (สำหรับทำ Demo เสนอผู้บริหาร) ---
+# --- 2. DEEP ANALYSIS MAPPING (ข้อมูลจริงที่คีย์ไว้) ---
 deep_analysis_data = {
     "Aphiphongphiphut Kaweeyarn": {
         "At 1": [
@@ -67,21 +63,16 @@ deep_analysis_data = {
     }
 }
 
-# --- 3. การตั้งค่าหน้าตาแอป & CSS (Luxury Premium) ---
+# --- 3. การตั้งค่าหน้าตาแอป & CSS ---
 st.set_page_config(page_title="aims SAT Deep Analysis", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #ffffff; }
-    
-    /* ชื่อนักเรียนตรงกลาง */
     .student-name-header { text-align: center; color: #002d56; font-size: 50px; font-weight: 900; margin-top: 10px; }
-    
-    /* Target Score */
     .target-container { text-align: center; margin-bottom: 30px; }
     .target-label { font-size: 22px; color: #64748b; font-weight: 700; letter-spacing: 4px; }
     .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
-    
     .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .analysis-card { background-color: white; padding: 30px; border-radius: 25px; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     
@@ -128,7 +119,6 @@ if df is not None:
     s_data = df[df['Student Name'] == student_name].sort_values('Date').reset_index(drop=True)
     
     if not s_data.empty:
-        # ใช้ Target Score จากฐานข้อมูลแทนค่าคงที่ 1500
         target_val = int(s_data['Target Score'].iloc[0]) if pd.notna(s_data['Target Score'].iloc[0]) else 1500
         
         if "active_student" not in st.session_state or st.session_state.active_student != student_name:
@@ -139,7 +129,6 @@ if df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        # --- ส่วนกลาง: ชื่อและเป้าหมาย ---
         st.markdown(f"<div class='student-name-header'>{student_name}</div>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-container">
@@ -169,12 +158,9 @@ if df is not None:
             fig.add_trace(go.Bar(x=labels, y=s_data['R&W Score'], name='R&W', marker=dict(color='#ffffff', line=dict(color='#002d56', width=2))))
             
             fig.update_layout(
-                barmode='group', 
-                plot_bgcolor='white', 
-                height=450, 
+                barmode='group', plot_bgcolor='white', height=450, 
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
             btn_cols = st.columns(len(s_data))
@@ -202,29 +188,39 @@ if df is not None:
 
         st.divider()
 
-        # --- 7. DEEP ANALYSIS SECTION ---
+        # --- 7. DEEP ANALYSIS SECTION (พร้อมระบบ Auto-Generate Demo Data) ---
         st.markdown("<div class='analysis-card'>", unsafe_allow_html=True)
         st.header("🔍 Deep Analysis: Incorrect Questions & Topic Review")
         
         at_key = f"At {c_idx+1}"
+        
+        # ดึงข้อมูลจากฐานข้อมูลหลักก่อน
         analysis_list = deep_analysis_data.get(student_name, {}).get(at_key, [])
         
-        if analysis_list:
-            table_html = "<table class='deep-table'><tr><th>Subject</th><th>Question</th><th>Topic Domain</th><th>Deep Insight / Recommended Action</th></tr>"
-            for item in analysis_list:
-                tag_class = "tag-math" if item['Subject'] == "Math" else "tag-rw"
-                table_html += f"<tr><td class='{tag_class}'>{item['Subject']}</td><td>{item['Question']}</td><td>{item['Topic']}</td><td>{item['Detail']}</td></tr>"
-            table_html += "</table>"
-            st.markdown(table_html, unsafe_allow_html=True)
-        else:
-            st.info(f"ยังไม่มีข้อมูลวิเคราะห์ข้อที่ผิดสำหรับ {at_key} ของนักเรียนท่านนี้ค่ะ ทีมวิชาการสามารถอัปเดตข้อมูลเพิ่มเติมได้ในระบบค่ะ")
+        # ถ้านักเรียนคนไหนไม่มีข้อมูล ให้สร้างข้อมูล Mock up ขึ้นมาสำหรับ Demo โดยอัตโนมัติ!
+        if not analysis_list:
+            analysis_list = [
+                {"Subject": "Math", "Question": "Q8", "Topic": "Advanced Math", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Quadratic Equations - สับสนการแยกตัวประกอบและการใช้สูตร"},
+                {"Subject": "Math", "Question": "Q15", "Topic": "Problem Solving", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Data Inference - วิเคราะห์แนวโน้มจากกราฟ Scatterplot พลาด"},
+                {"Subject": "R&W", "Question": "Q12", "Topic": "Craft & Structure", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Words in Context - ไม่คุ้นเคยกับคำศัพท์เฉพาะทางในบริบทวิทยาศาสตร์"},
+                {"Subject": "R&W", "Question": "Q21", "Topic": "Expression of Ideas", "Detail": "<span style='color:#ef4444;'>(Demo Data)</span> Transitions - เลือกคำเชื่อมประโยคที่แสดงความขัดแย้งผิดพลาด"}
+            ]
 
+        # สร้างตารางวิเคราะห์
+        table_html = "<table class='deep-table'><tr><th>Subject</th><th>Question</th><th>Topic Domain</th><th>Deep Insight / Recommended Action</th></tr>"
+        for item in analysis_list:
+            tag_class = "tag-math" if item['Subject'] == "Math" else "tag-rw"
+            table_html += f"<tr><td class='{tag_class}'>{item['Subject']}</td><td>{item['Question']}</td><td>{item['Topic']}</td><td>{item['Detail']}</td></tr>"
+        table_html += "</table>"
+        st.markdown(table_html, unsafe_allow_html=True)
+
+        # ส่วนแนะนำกลยุทธ์
         st.markdown("<br><b style='color: #002d56; font-size: 20px;'>💡 Mentor Strategy:</b>", unsafe_allow_html=True)
-        all_topics = {**{k: selected_attempt[v] for k, v in {"Algebra": 'Math Algebra (%)', "Advanced Math": 'Math Advanced Math (%)'}.items() if v in selected_attempt and pd.notna(selected_attempt[v])}}
+        all_topics = {**{k: selected_attempt[v] for k, v in {"Algebra": 'Math Algebra (%)', "Advanced Math": 'Math Advanced Math (%)', "Expression of Ideas": 'R&W Expression of Ideas (%)'}.items() if v in selected_attempt and pd.notna(selected_attempt[v])}}
         if all_topics:
             weakest = min(all_topics, key=all_topics.get)
-            st.write(f"จากการวิเคราะห์คะแนนและข้อที่ผิดในรอบนี้ น้องควรเร่งติวในหัวข้อ **{weakest}** เป็นอันดับหนึ่งค่ะ "
-                     f"เพื่อให้คะแนนรวมไปถึงเป้าหมาย **{target_val}** แนะนำให้ทีมวิชาการจัดโจทย์ซ้ำในหมวดนี้ให้ทำเพิ่มเติมค่ะ")
+            st.write(f"จากการประมวลผลข้อมูลในรอบนี้ น้องควรเร่งอุดรอยรั่วในหัวข้อ **{weakest}** เป็นอันดับหนึ่ง "
+                     f"เพื่อให้คะแนนรวมไปถึงเป้าหมาย **{target_val}** แนะนำให้ทีมวิชาการดึงข้อสอบเก่า (Past Papers) หมวดนี้มาให้น้องฝึกทำแบบจับเวลาอย่างน้อย 2 ชุดค่ะ")
         
         st.markdown("</div>", unsafe_allow_html=True)
 
