@@ -20,7 +20,7 @@ def load_data():
 
 df = load_data()
 
-# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) ---
+# --- 2. ฐานข้อมูล Incorrect Questions จริง (At 1 - At 8) สกัดจาก PDF ---
 incorrect_mapping = {
     "Aphiphongphiphut Kaweeyarn": {
         "At 1": "Math: Q12, Q16, Q17, Q21 (Advanced Math/Additional) | R&W: Q14, Q19, Q20, Q21, Q27 (Ideas/Std. Eng)",
@@ -49,23 +49,15 @@ st.set_page_config(page_title="aims SAT Dashboard", layout="wide")
 
 st.markdown("""
     <style>
-    /* บังคับพื้นหลังขาวสะอาดตา */
     .stApp { background-color: #ffffff; }
     
-    /* ชื่อนักเรียนอยู่ตรงกลางเป๊ะๆ */
-    .student-name-center { 
-        text-align: center; 
-        color: #002d56; 
-        font-size: 52px; 
-        font-weight: 900; 
-        margin-top: 20px; 
-        width: 100%;
-    }
+    /* ชื่อนักเรียนตรงกลาง */
+    .student-title { text-align: center; color: #002d56; font-size: 52px; font-weight: 900; margin-top: 20px; }
     
-    /* เป้าหมายอยู่ตรงกลาง */
+    /* Target 1500 ยักษ์ */
     .target-container { text-align: center; margin-bottom: 40px; }
     .target-label { font-size: 24px; color: #64748b; font-weight: 700; letter-spacing: 5px; }
-    .target-huge { font-size: 160px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
+    .target-huge { font-size: 150px; font-weight: 900; color: #002d56; line-height: 1; margin: 0; }
     
     .stMetric { background-color: white; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .attempt-card { background-color: white; padding: 30px; border-radius: 25px; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -80,16 +72,15 @@ st.sidebar.title("🔐 aims Portal")
 role = st.sidebar.radio("เข้าสู่ระบบในฐานะ:", ["Student", "Admin"])
 
 if role == "Student" and df is not None:
-    # --- LAYOUT แถวบนสุด: ซ้าย=เลือกชื่อ | ขวา=โลโก้ ---
-    header_left, header_right = st.columns([1, 1])
+    # --- แถวบนสุด: ซ้าย=เลือกชื่อ | ขวา=โลโก้ ---
+    h_left, h_right = st.columns([1, 1])
     
-    with header_left:
+    with h_left:
         student_list = sorted(df['Student Name'].unique())
         def reset_idx(): st.session_state.selected_idx = 0
         student_name = st.selectbox("เลือกนักเรียนที่ต้องการดูข้อมูล:", student_list, on_change=reset_idx)
         
-    with header_right:
-        # ระบบโหลดโลโก้แบบปลอดภัย
+    with h_right:
         logo_path = "aims_logo_2014_01_crop_blue_200x50px.png"
         img_html = ""
         if os.path.exists(logo_path):
@@ -102,7 +93,7 @@ if role == "Student" and df is not None:
         st.markdown(f'''
             <div style='text-align: right;'>
                 {img_html}
-                <div style='color: #002d56; font-size: 14px; font-weight: bold; line-height: 1.2; margin-top: 5px;'>
+                <div style='color: #002d56; font-size: 14px; font-weight: bold; line-height: 1.1; margin-top: 5px;'>
                     Siam Square: 02-254-9300-2<br>
                     www.aims.co.th | Line ID: @aims2
                 </div>
@@ -121,8 +112,8 @@ if role == "Student" and df is not None:
         selected_attempt = s_data.iloc[c_idx]
         best_score = s_data['Total Score'].max()
 
-        # --- แถวกลาง: ชื่อนักเรียน และ Target 1500 ตรงกลางเป๊ะๆ ---
-        st.markdown(f"<div class='student-name-center'>{student_name}</div>", unsafe_allow_html=True)
+        # --- ส่วนกลาง: ชื่อนักเรียน และ 1500 ตรงกลาง ---
+        st.markdown(f"<div class='student-title'>{student_name}</div>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="target-container">
                 <div class="target-label">TARGET SCORE</div>
@@ -135,46 +126,47 @@ if role == "Student" and df is not None:
         with m2: st.metric("คะแนนสูงสุด (Best)", int(best_score))
         with m3:
             prog = int((best_score / target_val) * 100)
-            st.metric("Progress to 1500", f"{prog}%", f"ขาดอีก {target_val - int(best_score)}")
+            st.metric("Progress", f"{prog}%", f"Gap: {target_val - int(best_score)}")
             st.progress(prog/100)
 
         st.divider()
 
-        # --- 6. กราฟฟ้า-ขาว (Hard-coded Colors) ---
+        # --- 6. กราฟฟ้า-ขาว (Manual Color Override) ---
         left, right = st.columns([1.7, 1.3])
 
         with left:
             st.subheader("📊 Performance Trend (At 1 - At 8)")
+            
             fig = go.Figure()
             labels = [f"At {i+1}" for i in range(len(s_data))]
             
-            # Math: สีฟ้าทึบ (aims Blue)
+            # Math: สีฟ้าทึบ aims
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['Math Score'], name='Math', 
-                marker=dict(color='#002d56')
+                marker_color='#002d56'
             ))
-            # R&W: สีขาวทึบขอบฟ้า
+            # R&W: สีขาวขอบฟ้า
             fig.add_trace(go.Bar(
                 x=labels, y=s_data['R&W Score'], name='Reading & Writing', 
                 marker=dict(
-                    color='#ffffff',  # สีขาวทึบ
-                    line=dict(color='#002d56', width=3) # ขอบน้ำเงิน aims
+                    color='#ffffff', 
+                    line=dict(color='#002d56', width=3) 
                 )
             ))
             
             fig.update_layout(
                 barmode='group',
-                plot_bgcolor='white',  # บังคับพื้นกราฟขาว
-                paper_bgcolor='white', # บังคับพื้นกระดาษขาว
+                plot_bgcolor='white',
+                paper_bgcolor='white',
                 xaxis=dict(title="Attempts", linecolor='#e2e8f0'),
                 yaxis=dict(title="Score", range=[200, 800], tickvals=[200, 400, 600, 800], gridcolor='#f1f5f9'),
                 height=500,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            # บังคับ theme=None อย่างเด็ดขาดเพื่อให้สีทำงานตามสั่งค่ะ!
+            # สำคัญมาก: theme=None เพื่อป้องกัน Streamlit ทับสีค่ะ
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
-            st.write("🔍 เลือกครั้งที่ต้องการดูรายละเอียดด้านข้างค่ะ:")
+            st.write("🔍 เลือกครั้งที่ต้องการเจาะลึกข้อมูลด้านข้างค่ะ:")
             btn_cols = st.columns(len(s_data))
             for i in range(len(s_data)):
                 if btn_cols[i].button(f"At {i+1}", key=f"btn_{i}", use_container_width=True, type="primary" if i == c_idx else "secondary"):
@@ -215,7 +207,7 @@ if role == "Student" and df is not None:
                 st.markdown(f"""
                     <div style='font-size: 14px; color: #1e293b; line-height: 1.7; margin: 15px 0;'>
                         หนูวิเคราะห์ข้อมูลครั้งนี้ให้แล้วนะคะ จุดที่น้องต้องเร่งเสริมเพื่อให้ถึง 1500 คือหัวข้อ <b>{weak_t}</b> ค่ะ 
-                        ซึ่งทำได้เพียง <b>{int(all_topics[weak_t])}%</b> ในรอบนี้ หนูแนะนำให้พี่มหาเน้นให้น้องทำโจทย์หัวข้อนี้เพิ่มขึ้นนะคะ สู้ๆ ค่ะ!
+                        ซึ่งทำได้เพียง <b>{int(all_topics[weak_t])}%</b> ในรอบนี้ หนูแนะนำให้พี่มหาเน้นให้น้องทำโจทย์หัวข้อนี้เพิ่มขึ้นเป็นพิเศษนะคะ สู้ๆ ค่ะ!
                     </div>
                 """, unsafe_allow_html=True)
             
