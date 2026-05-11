@@ -21,7 +21,6 @@ def load_data():
 df = load_data()
 
 # --- 2. DEEP ANALYSIS MAPPING (Incorrect Questions Details) ---
-# หนู Mapping รายละเอียดเชิงลึกแยกตามรายวิชาและหัวข้อให้ตามลิงก์ที่พี่มหาต้องการเลยค่ะ
 deep_analysis_data = {
     "Aphiphongphiphut Kaweeyarn": {
         "At 1": [
@@ -35,7 +34,6 @@ deep_analysis_data = {
             {"Subject": "Math", "Question": "Q18", "Topic": "Additional Topics", "Detail": "Circle Equation (จำสูตรการหาจุดศูนย์กลางรัศมีไม่ได้)"},
             {"Subject": "R&W", "Question": "Q3", "Topic": "Craft & Structure", "Detail": "Words in Context (การเลือกความหมายของคำศัพท์ที่เปลี่ยนไปตามบริบท)"}
         ]
-        # พี่มหาเพิ่มข้อมูล At อื่นๆ ลงในโครงสร้างนี้ได้เลยนะคะ ข้อมูลจะขึ้นในตารางอัตโนมัติค่ะ
     },
     "Pharin Chantapakul": {
         "At 1": [
@@ -144,8 +142,16 @@ if df is not None:
             labels = [f"At {i+1}" for i in range(len(s_data))]
             fig.add_trace(go.Bar(x=labels, y=s_data['Math Score'], name='Math', marker_color='#002d56'))
             fig.add_trace(go.Bar(x=labels, y=s_data['R&W Score'], name='R&W', marker=dict(color='#ffffff', line=dict(color='#002d56', width=2))))
-            fig.update_layout(barmode='group', plot_bgcolor='white', height=450, theme=None, 
-                              legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+            
+            # ลบ theme=None ออกจากตรงนี้แล้วค่ะ ตัวปัญหาอยู่ตรงนี้เอง!
+            fig.update_layout(
+                barmode='group', 
+                plot_bgcolor='white', 
+                height=450, 
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            
+            # บังคับสีตอนเรนเดอร์กราฟ (ทำถูกจุดแล้วค่ะ)
             st.plotly_chart(fig, use_container_width=True, theme=None)
             
             # Selector
